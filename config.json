@@ -1,0 +1,26 @@
+{
+  "title": "Licznik piw",
+  "photo_window_sec": 180,
+  "photo_fallback_sec": 1800,
+  "photo_same_sender": true,
+  "max_jump": 12,
+  "burst_sec": 60,
+  "collision_window_sec": 900,
+  "resync_lookahead": 3,
+  "day_start_hour": 6,
+  "aliases": {
+    "Wojciech Gierulski": "Wojtek Gierulski"
+  },
+  "exclude": [],
+  "backfill": {
+    "date": "2026-11-05",
+    "beers": {
+      "Michał Sapuła": 2,
+      "Wojciech Gierulski": 1,
+      "Mateusz Bielec": 3,
+      "Robert Kruger": 1
+    }
+  },
+  "assign": {},
+  "skip_messages": []
+}

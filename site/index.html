@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Piwny licznik</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍺</text></svg>">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1 id="title">Piwny licznik</h1>
+      <div class="sub" id="updated"></div>
+    </div>
+    <button class="theme-btn" id="themeBtn" type="button">Motyw: auto</button>
+  </header>
+
+  <section class="hero">
+    <div class="card hero-main">
+      <div class="label">Licznik grupy</div>
+      <div class="value" id="counter">–</div>
+      <div class="milestones" id="milestones"></div>
+    </div>
+    <div class="hero-side">
+      <div class="tiles" id="tiles"></div>
+      <div class="card">
+        <div class="card-head"><h2 id="todayTitle">Ostatni dzień</h2><span class="sub" id="todaySub"></span></div>
+        <div class="today-feed" id="todayFeed"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card grid-1">
+    <div class="card-head">
+      <h2>Ranking</h2>
+      <div class="seg" id="lbSeg" role="group" aria-label="Okres rankingu">
+        <button data-p="week" aria-pressed="true">Tydzień</button>
+        <button data-p="month" aria-pressed="false">Miesiąc</button>
+        <button data-p="year" aria-pressed="false">Rok</button>
+        <button data-p="all" aria-pressed="false">All-time</button>
+      </div>
+    </div>
+    <div id="leaderboard"></div>
+  </section>
+
+  <section class="card grid-1">
+    <div class="card-head">
+      <div><h2>Piwa w czasie</h2><div class="sub" id="dailySub">Słupki: suma dzienna · linia: średnia 7-dniowa</div></div>
+      <div class="seg" id="rangeSeg" role="group" aria-label="Zakres">
+        <button data-r="30" aria-pressed="false">30 dni</button>
+        <button data-r="90" aria-pressed="true">90 dni</button>
+        <button data-r="365" aria-pressed="false">Rok</button>
+        <button data-r="0" aria-pressed="false">Wszystko</button>
+      </div>
+    </div>
+    <div class="chart-box"><canvas id="dailyChart" aria-label="Liczba piw dziennie"></canvas></div>
+  </section>
+
+  <section class="card grid-1">
+    <div class="card-head"><div><h2>Wyścig</h2><div class="sub">Łączna liczba piw każdego zawodnika</div></div></div>
+    <div class="chart-box tall"><canvas id="raceChart" aria-label="Skumulowana liczba piw na osobę"></canvas></div>
+    <div class="legend" id="raceLegend"></div>
+  </section>
+
+  <section class="card grid-1">
+    <div class="card-head"><div><h2>Kalendarz</h2><div class="sub">Ostatnie 12 miesięcy, piwa dziennie</div></div></div>
+    <div class="heat-scroll"><div class="heat" id="heatmap"></div></div>
+    <div class="heat-legend" id="heatLegend"></div>
+  </section>
+
+  <section class="grid-2">
+    <div class="card">
+      <div class="card-head"><div><h2>O której się pije</h2><div class="sub">Wszystkie piwa wg godziny</div></div></div>
+      <div class="chart-box"><canvas id="hourChart" aria-label="Piwa wg godziny"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h2>Dzień tygodnia</h2><div class="sub">Średnio piw na dzień</div></div></div>
+      <div class="chart-box"><canvas id="dowChart" aria-label="Piwa wg dnia tygodnia"></canvas></div>
+    </div>
+  </section>
+
+  <section class="card grid-1">
+    <div class="card-head"><div><h2>Galeria sław</h2><div class="sub">Kafelki z 📷 otwierają zdjęcia. Klikalne są też imiona w rankingu i dni w kalendarzu</div></div></div>
+    <div class="records" id="records"></div>
+  </section>
+
+  <section class="card grid-1">
+    <div class="card-head"><div><h2>Odznaki</h2><div class="sub">Najedź na ikonę, żeby zobaczyć, za co jest odznaka</div></div></div>
+    <div class="ach-scroll" id="achievements"></div>
+    <div class="ach-key" id="achKey"></div>
+  </section>
+
+  <section class="grid-2 lvl-grid">
+    <div class="card">
+      <div class="card-head"><div><h2>Poziomy</h2><div class="sub" id="levelsSub"></div></div></div>
+      <div id="levels"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h2>Najbliżej awansu</h2><div class="sub">Komu brakuje najmniej do kolejnego poziomu</div></div></div>
+      <div class="level-up" id="levelUp"></div>
+    </div>
+  </section>
+
+  <section class="grid-2">
+    <div class="card">
+      <div class="card-head"><div><h2>Piwosz tygodnia</h2><div class="sub">Zwycięzcy ostatnich tygodni</div></div></div>
+      <div class="weeks" id="weeks"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Pojedynek</h2></div>
+      <div class="duel-pick"><div class="combo" id="duelA"></div><span class="sub">vs</span><div class="combo" id="duelB"></div></div>
+      <div id="duel"></div>
+    </div>
+  </section>
+
+  <section class="card grid-1">
+    <div class="card-head"><div><h2>Nie zaliczone</h2><div class="sub">Numer bez zdjęcia albo spoza kolejności, czyli nie było</div></div></div>
+    <div id="shame"></div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+<div class="tip" id="tip"></div>
+<div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-labelledby="lbTitle">
+  <div class="lb-box">
+    <div class="lb-head"><h2 id="lbTitle"></h2><button class="lb-x" id="lbClose" type="button" aria-label="Zamknij">✕</button></div>
+    <div class="lb-stage">
+      <button class="lb-nav" id="lbPrev" type="button" aria-label="Poprzednie">‹</button>
+      <div class="lb-media" id="lbMedia"></div>
+      <button class="lb-nav" id="lbNext" type="button" aria-label="Następne">›</button>
+    </div>
+    <div class="lb-cap" id="lbCap"></div>
+    <div class="lb-thumbs" id="lbThumbs"></div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

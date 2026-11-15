@@ -1,0 +1,11 @@
+# Messenger exports contain the whole chat and photos: never commit them
+export/
+exports/
+sample_export/
+*.zip
+facebook-*/
+your_facebook_activity/
+messages/
+.DS_Store
+__pycache__/
+review.md
