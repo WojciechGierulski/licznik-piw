@@ -52,6 +52,7 @@ DEFAULT_CONFIG = {
     "backfill": {},         # beers from before this chat: {"date": "2026-11-02", "beers": {"Name": n}}
     "assign": {},           # gap numbers decided by hand: {"53": "Name"}
     "skip_messages": [],    # timestamp_ms of counter posts rejected by hand (VAR)
+    "accept_messages": [],  # timestamp_ms of counter posts credited without a photo (VAR forgave)
     "publish_photos": True, # copy the photos behind credited beers to site/media/
 }
 
@@ -224,6 +225,7 @@ def count_beers(msgs, cfg):
         m["who"] = aliases.get(m["who"], m["who"])
     msgs = [m for m in msgs if m["who"] not in exclude]
     skip = set(int(x) for x in cfg["skip_messages"])
+    accept = set(int(x) for x in cfg["accept_messages"])
     assign = {int(k): aliases.get(v, v) for k, v in cfg["assign"].items()}
 
     # 1. candidate posts, with bursts of one sender merged into one post
@@ -296,6 +298,11 @@ def count_beers(msgs, cfg):
         photos = pool.near(p["ts"], p["who"] if same else None, win, win)
         if not photos:
             photos = pool.near(p["ts"], p["who"] if same else None, fb, 0)
+        # a photo closer to the sender's next counter post belongs to that post
+        nxt = next((q for q in posts[j + 1:j + 20] if q["who"] == p["who"] and q["ts"] - p["ts_last"] <= 2 * win), None)
+        if nxt:
+            dist = lambda k: min(abs(pool.times[k] - p["ts"]), abs(pool.times[k] - p["ts_last"]))
+            photos = [k for k in photos if dist(k) <= abs(pool.times[k] - nxt["ts"])]
 
         if not run:
             n0 = p["nums"][0]
@@ -315,6 +322,11 @@ def count_beers(msgs, cfg):
                 reject(p, "korekta" if p["corr"] else ("numer już był" if n0 <= counter else "poza kolejnością"))
             continue
 
+        if not photos and any(msgs[i]["ts"] in accept for i in p["idx"]):
+            credit(p["ts"], p["who"], run[-1], len(run), "seq", reactions(p, []))
+            review.append(f"VAR: „{p['text']}” ({p['who']}) zaliczone bez zdjęcia (accept_messages)")
+            counter, last = run[-1], (run[-1], p["who"], p["ts"])
+            continue
         if not photos and same and len(run) == 1:
             # someone posted the number for a friend: an unclaimed photo by another person
             # who did not post a number themselves around that time
@@ -361,9 +373,8 @@ def count_beers(msgs, cfg):
                     review.append(f"Luka #{n}: przypisana do {who} (zdjęcie bez numeru "
                                   f"{datetime.fromtimestamp(pool.items[k][0] / 1000):%d.%m %H:%M})")
             elif open_gap and not orphans:
-                credit(p["ts"], p["who"], open_gap[-1], len(open_gap), "gap")
-                review.append(f"Luka {', '.join('#%d' % n for n in open_gap)}: brak innych zdjęć, "
-                              f"zaliczona dla {p['who']} („{p['text']}”)")
+                review.append(f"Pominięty numer {', '.join('#%d' % n for n in open_gap)}: przed „{p['text']}” "
+                              f"({p['who']}) nikt nie wrzucił zdjęcia, więc nikt go nie dostaje")
             elif open_gap:
                 cands = Counter(pool.items[k][1] for k in orphans)
                 review.append(f"**DO DECYZJI** luka {', '.join('#%d' % n for n in open_gap)} przed „{p['text']}” "
@@ -460,6 +471,9 @@ def main():
     for b in beers:
         totals[b[1]] += b[3]
     people = [p for p, _ in totals.most_common()]
+    first_seen = {}
+    for m in msgs:  # sorted by time; count_beers already applied aliases
+        first_seen.setdefault(m["who"], m["ts"])
     idx = {p: k for k, p in enumerate(people)}
     kind_code = {"seq": "s", "collision": "c", "resync": "r", "gap": "g", "assigned": "a", "backfill": "b"}
     data = {
@@ -472,6 +486,7 @@ def main():
         "people": people,
         # [unix seconds, person index, counter number, beers credited, kind, reactions, photo files]
         "beers": [[t, idx[w], n, c, kind_code[k], r, f] for t, w, n, c, k, r, f in beers],
+        "joined": [first_seen.get(w, 0) // 1000 for w in people],  # first message in the chat
         "rejected": rejected[-300:],
         "messages_total": len(msgs),
     }

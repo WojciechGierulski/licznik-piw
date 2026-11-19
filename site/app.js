@@ -102,6 +102,11 @@
     { id: "clash", ico: "🤝", name: "Kolizja", desc: "Wrzucił ten sam numer co ktoś inny" },
     { id: "comeback", ico: "🐫", name: "Powrót", desc: "Wrócił po co najmniej 7 dniach przerwy" },
     { id: "newyear", ico: "🎆", name: "Otwieracz roku", desc: "Pierwsze piwo w nowym roku w grupie" },
+    { id: "opener", ico: "🔑", name: "Otwieracz dnia", desc: "Pierwsze piwo dnia w całej grupie" },
+    { id: "closer", ico: "🌙", name: "Zamykacz", desc: "Ostatnie piwo dnia w całej grupie" },
+    { id: "rescue", ico: "🚨", name: "Ratownik", desc: "Przerwał ciszę: pierwsze piwo grupy po co najmniej 18 godzinach bez piwa" },
+    { id: "nice", ico: "😏", name: "Nice", desc: "Wbił numer kończący się na 69" },
+    { id: "dragon", ico: "🐉", name: "Wejście smoka", desc: "Pierwsze piwo w ciągu godziny od dołączenia do czatu" },
   ];
 
   const achTip = (a, n) => esc(`${a.ico} ${a.name}: ${a.desc}${n > 1 ? ` (zdobyte ×${n})` : ""}`);
@@ -118,8 +123,17 @@
     const lastT = people.map(() => null);
     const lastDayOf = people.map(() => null);
     const seenYear = new Set();
+    const dayFirst = new Map(), dayLast = new Map();
+    const joined = D.joined || [];
+    let lastAny = null;
     for (const b of beers) {
       if (b.k === "b") { daysOf[b.p].set(b.day, (daysOf[b.p].get(b.day) || 0) + b.c); continue; }
+      if (!dayFirst.has(b.day)) dayFirst.set(b.day, b.p);
+      dayLast.set(b.day, b.p);
+      if (lastAny !== null && b.t - lastAny >= 18 * 3600) add(b.p, "rescue");
+      lastAny = b.t;
+      if (b.n % 100 === 69 || b.n === 69) add(b.p, "nice");
+      if (lastT[b.p] === null && joined[b.p] && b.t - joined[b.p] <= 3600) add(b.p, "dragon");
       if (b.n % 100 === 0 && b.k !== "c") add(b.p, "jubilat");
       if (b.c >= 3 && b.k === "s") add(b.p, "multi");
       if (b.r >= 5) add(b.p, "star");
@@ -149,6 +163,8 @@
       if (p.total >= 100) add(i, "century");
     });
     for (const w of weekWinners) for (const p of w.winners) add(p, "king");
+    for (const p of dayFirst.values()) add(p, "opener");
+    for (const [d, p] of dayLast) if (d < todayIdx) add(p, "closer");  // today is not over yet
     return res;
   }
 
@@ -497,6 +513,19 @@
     const big = timed().filter((b) => b.k === "s").reduce((a, b) => (b.c > (a ? a.c : 1) ? b : a), null);
     if (big) recs.push(["🍻", "Największy hurt", `${piw(big.c)} w jednym poście`, name(big.p), `do #${big.n} · ${dateFmt.format(new Date(big.t * 1000))}`,
       timed().filter((b) => b.k === "s" && b.c >= 2).sort((x, y) => y.c - x.c), "Hurtowe posty"]);
+    // peak hour: most beers in any 60-minute window
+    const tb = timed();
+    let peak = { n: 0 }, lo = 0, inWin = 0;
+    for (let hi = 0; hi < tb.length; hi++) {
+      inWin += tb[hi].c;
+      while (tb[hi].t - tb[lo].t > 3600) inWin -= tb[lo++].c;
+      if (inWin > peak.n) peak = { n: inWin, from: lo, to: hi };
+    }
+    if (peak.n) {
+      const pk = tb.slice(peak.from, peak.to + 1);
+      recs.push(["⏱️", "Godzina szczytu", `${piw(peak.n)} w godzinę`, `${new Set(pk.map((b) => b.p)).size} osób`,
+        `${dateFmt.format(new Date(pk[0].t * 1000))} ${timeFmt.format(new Date(pk[0].t * 1000))}–${timeFmt.format(new Date(pk[pk.length - 1].t * 1000))}`, pk]);
+    }
     const first = timed()[0];
     recs.push(["🥇", "Pierwsze piwo w grupie", `#${first.n}`, name(first.p), dateFmt.format(new Date(first.t * 1000)), [first]]);
 
@@ -546,6 +575,34 @@
       return `<div class="up-row"><div class="up-top"><b>${esc(p.name)}</b><span class="sub">${lv.ico} ${lv.name} → ${lv.next[2]} ${lv.next[1]}</span></div>
         <div class="meter"><i style="width:${pct}%"></i></div><div class="sub">brakuje ${piw(miss)}</div></div>`;
     }).join("");
+  }
+
+  // ---------------------------------------------------------------- milestones & rookies
+  function renderMilestones() {
+    const hits = beers.filter((b) => b.k !== "b" && b.k !== "c" && Math.floor(b.n / 100) > Math.floor((b.n - b.c) / 100));
+    const rows = hits.map((b) => ({ b, m: Math.floor(b.n / 100) * 100 }));
+    $("milestones2").innerHTML = rows.length ? rows.slice().reverse().map(({ b, m }, k, arr) => {
+      const prev = arr[k + 1];
+      const took = prev ? (b.t - prev.b.t) / 86400 : null;
+      galleries["m" + m] = { title: `Piwo #${m}`, list: [b] };
+      return `<div class="ms-row ${b.f.length ? "link" : ""}" ${b.f.length ? `data-gal="m${m}" role="button" tabindex="0"` : ""}>
+        <span class="ms-n num">${fmt(m)}</span><span><b>${esc(people[b.p].name)}</b>${b.f.length ? " 📷" : ""}<br>
+        <span class="sub">${dateFmt.format(new Date(b.t * 1000))}${took !== null ? ` · ${fmt1(took)} dni od ${fmt(prev.m)}` : ""}${b.r ? ` · ❤️ ${b.r}` : ""}</span></span></div>`;
+    }).join("") : `<div class="empty">Pierwsza setka jeszcze przed nami.</div>`;
+  }
+
+  function renderRookies() {
+    const debut = new Map();
+    for (const b of timed()) if (!debut.has(b.p)) debut.set(b.p, b);
+    const weekStartIdx = weekStart(weekOf(todayIdx));
+    const list = [...debut.values()].sort((a, b) => b.t - a.t);
+    const thisWeek = list.filter((b) => b.day >= weekStartIdx).length;
+    $("rookiesSub").textContent = `Pierwsze zaliczone piwo każdego zawodnika. W tym tygodniu ${thisWeek} ${plural(thisWeek, "nowy", "nowych", "nowych")}.`;
+    galleries.rookies = { title: "Debiuty", list: list.filter((b) => b.f.length) };
+    $("rookies").innerHTML = list.slice(0, 12).map((b) => `<div class="row link" data-gal="b:${beers.indexOf(b)}">
+      <span class="w">${shortFmt.format(dateOfIdx(b.day))}</span><span>${esc(people[b.p].name)}${achievements[b.p].dragon ? ' <span data-tip="Wejście smoka: piwo w godzinę od dołączenia">🐉</span>' : ""}</span>
+      <span class="num sub">#${b.n}</span></div>`).join("")
+      + (list.length > 12 ? `<button class="more-btn" type="button" data-gal="rookies">Wszystkie debiuty (${list.length}) 📷</button>` : "");
   }
 
   // ---------------------------------------------------------------- lightbox
@@ -727,7 +784,7 @@
     document.title = data.title || "Piwny licznik";
     const upTo = new Date((data.last_message || Date.parse(data.generated_at) / 1000) * 1000);
     $("updated").textContent = `Dane do ${dateFmt.format(upTo)} ${timeFmt.format(upTo)} · ${fmt(data.messages_total)} wiadomości · ${people.length} zawodników`;
-    renderThemed(); renderRecords(); renderWeeks(); renderShame(); renderLevels(); wireLightbox();
+    renderThemed(); renderRecords(); renderWeeks(); renderShame(); renderLevels(); renderMilestones(); renderRookies(); wireLightbox();
 
     const order = [...people].sort((a, b) => b.total - a.total);
     makeCombo($("duelA"), order, order[0].i, renderDuel);

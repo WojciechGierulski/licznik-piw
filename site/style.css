@@ -317,3 +317,10 @@ footer a { color: var(--ink-2); }
   .lb-nav { display: none !important; }
   .lb-box { padding: 10px; }
 }
+
+/* milestones & rookies */
+.ms { display: grid; gap: 4px; }
+.ms-row { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; align-items: center; padding: 8px 6px; border-radius: 8px; font-size: 13.5px; }
+.ms-row.link:hover { background: var(--surface-2); }
+.ms-n { font-size: 20px; font-weight: 700; color: var(--accent-ink); }
+.weeks .row.link:hover { background: var(--surface-2); border-radius: 6px; }
