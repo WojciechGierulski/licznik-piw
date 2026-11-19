@@ -5,37 +5,60 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Piwny licznik</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍺</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&display=swap">
   <link rel="stylesheet" href="style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 <div class="wrap">
-  <header class="top">
-    <div>
-      <h1 id="title">Piwny licznik</h1>
-      <div class="sub" id="updated"></div>
+  <header class="hero-banner">
+    <div class="hb-top">
+      <div>
+        <div class="eyebrow">🍺 Droga do miliona</div>
+        <h1 id="title">Piwny licznik</h1>
+        <div class="hb-sub" id="updated"></div>
+      </div>
+      <button class="theme-btn" id="themeBtn" type="button">Motyw: auto</button>
     </div>
-    <button class="theme-btn" id="themeBtn" type="button">Motyw: auto</button>
-  </header>
-
-  <section class="hero">
-    <div class="card hero-main">
-      <div class="label">Licznik grupy</div>
-      <div class="value" id="counter">–</div>
-      <div class="milestones" id="milestones"></div>
-    </div>
-    <div class="hero-side">
-      <div class="tiles" id="tiles"></div>
-      <div class="card">
-        <div class="card-head"><h2 id="todayTitle">Ostatni dzień</h2><span class="sub" id="todaySub"></span></div>
-        <div class="today-feed" id="todayFeed"></div>
+    <div class="hb-body">
+      <div class="hb-count">
+        <div class="label">Licznik grupy</div>
+        <div class="value" id="counter">–</div>
+        <div class="milestones" id="milestones"></div>
+      </div>
+      <div class="glass-wrap" aria-hidden="true">
+        <svg class="glass" viewBox="0 0 120 160">
+          <defs>
+            <clipPath id="glassClip"><path d="M14 8 H106 L96 150 Q95 156 89 156 H31 Q25 156 24 150 Z"/></clipPath>
+            <linearGradient id="beerGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#ffc83d"/><stop offset="1" stop-color="#d98a00"/>
+            </linearGradient>
+          </defs>
+          <g clip-path="url(#glassClip)">
+            <rect class="glass-bg" x="0" y="0" width="120" height="160"/>
+            <g id="beer" class="beer">
+              <rect x="0" y="12" width="120" height="170" fill="url(#beerGrad)"/>
+              <path class="foam" d="M0 4 Q7.5 -4 15 4 T30 4 T45 4 T60 4 T75 4 T90 4 T105 4 T120 4 V16 Q60 21 0 16 Z"/>
+              <circle class="bub b1" cx="34" cy="150" r="2.4"/><circle class="bub b2" cx="58" cy="150" r="1.8"/>
+              <circle class="bub b3" cx="78" cy="150" r="2.2"/><circle class="bub b4" cx="46" cy="150" r="1.5"/>
+              <circle class="bub b5" cx="88" cy="150" r="1.6"/>
+            </g>
+          </g>
+          <path class="glass-edge" d="M14 8 H106 L96 150 Q95 156 89 156 H31 Q25 156 24 150 Z"/>
+          <path class="glass-shine" d="M26 18 L33 140"/>
+        </svg>
+        <div class="glass-label" id="glassLabel"></div>
       </div>
     </div>
-  </section>
+  </header>
+
+  <section class="tiles" id="tiles"></section>
 
   <section class="card grid-1">
     <div class="card-head">
-      <h2>Ranking</h2>
+      <h2><span class="h-ico">🏆</span>Ranking</h2>
       <div class="seg" id="lbSeg" role="group" aria-label="Okres rankingu">
         <button data-p="week" aria-pressed="true">Tydzień</button>
         <button data-p="month" aria-pressed="false">Miesiąc</button>
@@ -46,9 +69,20 @@
     <div id="leaderboard"></div>
   </section>
 
+  <section class="grid-2 feed-grid">
+    <div class="card">
+      <div class="card-head"><h2><span class="h-ico">📍</span><span id="todayTitle">Ostatni dzień</span></h2><span class="sub" id="todaySub"></span></div>
+      <div class="today-feed" id="todayFeed"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h2><span class="h-ico">👑</span>Menel tygodnia</h2><div class="sub">Kto wygrał ostatnie tygodnie</div></div></div>
+      <div class="weeks" id="weeks"></div>
+    </div>
+  </section>
+
   <section class="card grid-1">
     <div class="card-head">
-      <div><h2>Piwa w czasie</h2><div class="sub" id="dailySub">Słupki: suma dzienna · linia: średnia 7-dniowa</div></div>
+      <div><h2><span class="h-ico">📈</span>Piwa w czasie</h2><div class="sub" id="dailySub">Słupki: suma dzienna · linia: średnia 7-dniowa</div></div>
       <div class="seg" id="rangeSeg" role="group" aria-label="Zakres">
         <button data-r="30" aria-pressed="false">30 dni</button>
         <button data-r="90" aria-pressed="true">90 dni</button>
@@ -59,77 +93,48 @@
     <div class="chart-box"><canvas id="dailyChart" aria-label="Liczba piw dziennie"></canvas></div>
   </section>
 
-  <section class="card grid-1">
-    <div class="card-head"><div><h2>Wyścig</h2><div class="sub">Łączna liczba piw każdego zawodnika</div></div></div>
-    <div class="chart-box tall"><canvas id="raceChart" aria-label="Skumulowana liczba piw na osobę"></canvas></div>
-    <div class="legend" id="raceLegend"></div>
-  </section>
-
-  <section class="card grid-1">
-    <div class="card-head"><div><h2>Kalendarz</h2><div class="sub">Ostatnie 12 miesięcy, piwa dziennie</div></div></div>
-    <div class="heat-scroll"><div class="heat" id="heatmap"></div></div>
-    <div class="heat-legend" id="heatLegend"></div>
-  </section>
-
   <section class="grid-2">
     <div class="card">
-      <div class="card-head"><div><h2>O której się pije</h2><div class="sub">Wszystkie piwa wg godziny</div></div></div>
+      <div class="card-head"><div><h2><span class="h-ico">🕗</span>O której się pije</h2><div class="sub">Wszystkie piwa wg godziny</div></div></div>
       <div class="chart-box"><canvas id="hourChart" aria-label="Piwa wg godziny"></canvas></div>
     </div>
     <div class="card">
-      <div class="card-head"><div><h2>Dzień tygodnia</h2><div class="sub">Średnio piw na dzień</div></div></div>
+      <div class="card-head"><div><h2><span class="h-ico">📅</span>Dzień tygodnia</h2><div class="sub">Średnio piw na dzień</div></div></div>
       <div class="chart-box"><canvas id="dowChart" aria-label="Piwa wg dnia tygodnia"></canvas></div>
     </div>
   </section>
 
   <section class="card grid-1">
-    <div class="card-head"><div><h2>Galeria sław</h2><div class="sub">Kafelki z 📷 otwierają zdjęcia. Klikalne są też imiona w rankingu i dni w kalendarzu</div></div></div>
+    <div class="card-head"><div><h2><span class="h-ico">🏛️</span>Galeria sław</h2><div class="sub">Kafelki z 📷 otwierają zdjęcia. Klikalne są też imiona w rankingu</div></div></div>
     <div class="records" id="records"></div>
   </section>
 
   <section class="card grid-1">
-    <div class="card-head"><div><h2>Odznaki</h2><div class="sub">Najedź na ikonę, żeby zobaczyć, za co jest odznaka</div></div></div>
+    <div class="card-head"><div><h2><span class="h-ico">🎖️</span>Odznaki</h2><div class="sub">Najedź na ikonę, żeby zobaczyć, za co jest odznaka</div></div></div>
     <div class="ach-scroll" id="achievements"></div>
     <div class="ach-key" id="achKey"></div>
   </section>
 
   <section class="grid-2 lvl-grid">
     <div class="card">
-      <div class="card-head"><div><h2>Poziomy</h2><div class="sub" id="levelsSub"></div></div></div>
+      <div class="card-head"><div><h2><span class="h-ico">🪜</span>Poziomy</h2><div class="sub" id="levelsSub"></div></div></div>
       <div id="levels"></div>
     </div>
     <div class="card">
-      <div class="card-head"><div><h2>Najbliżej awansu</h2><div class="sub">Komu brakuje najmniej do kolejnego poziomu</div></div></div>
+      <div class="card-head"><div><h2><span class="h-ico">⏫</span>Najbliżej awansu</h2><div class="sub">Komu brakuje najmniej do kolejnego poziomu</div></div></div>
       <div class="level-up" id="levelUp"></div>
     </div>
   </section>
 
   <section class="grid-2">
     <div class="card">
-      <div class="card-head"><div><h2>Kamienie milowe</h2><div class="sub">Kto wbił kolejną setkę i ile to trwało</div></div></div>
+      <div class="card-head"><div><h2><span class="h-ico">🗿</span>Kamienie milowe</h2><div class="sub">Kto wbił kolejną setkę i ile to trwało</div></div></div>
       <div class="ms" id="milestones2"></div>
     </div>
     <div class="card">
-      <div class="card-head"><div><h2>Debiutanci</h2><div class="sub" id="rookiesSub"></div></div></div>
+      <div class="card-head"><div><h2><span class="h-ico">🐣</span>Debiutanci</h2><div class="sub" id="rookiesSub"></div></div></div>
       <div class="weeks" id="rookies"></div>
     </div>
-  </section>
-
-  <section class="grid-2">
-    <div class="card">
-      <div class="card-head"><div><h2>Piwosz tygodnia</h2><div class="sub">Zwycięzcy ostatnich tygodni</div></div></div>
-      <div class="weeks" id="weeks"></div>
-    </div>
-    <div class="card">
-      <div class="card-head"><h2>Pojedynek</h2></div>
-      <div class="duel-pick"><div class="combo" id="duelA"></div><span class="sub">vs</span><div class="combo" id="duelB"></div></div>
-      <div id="duel"></div>
-    </div>
-  </section>
-
-  <section class="card grid-1">
-    <div class="card-head"><div><h2>Nie zaliczone</h2><div class="sub">Numer bez zdjęcia albo spoza kolejności, czyli nie było</div></div></div>
-    <div id="shame"></div>
   </section>
 
   <footer id="footer"></footer>
@@ -147,6 +152,6 @@
     <div class="lb-thumbs" id="lbThumbs"></div>
   </div>
 </div>
-<script src="app.js"></script>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>

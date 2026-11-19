@@ -1,0 +1,108 @@
+// Levels and badges: what can be earned and who earned what.
+import { esc, piw } from "./format.js";
+import { D, beers, dateOfIdx, people, todayIdx, weeklyWinners } from "./model.js";
+
+// [beers needed (all-time), name, icon]
+export const LEVELS = [
+  [1, "Pierwszy łyk", "💧"], [3, "Piwny żółtodziób", "🐣"], [5, "Amator pianki", "🫧"],
+  [8, "Kapslowy kadet", "🧢"], [12, "Bywalec", "🪑"], [16, "Degustator", "👃"], [20, "Stały klient", "🧾"],
+  [25, "Kumpel barmana", "🤝"], [30, "Piwny weteran", "🎖️"], [40, "Koneser chmielu", "🌿"], [50, "Mistrz kufla", "🍺"],
+  [60, "Baron browaru", "🎩"], [75, "Hrabia chmielu", "🏰"], [90, "Książę pianki", "🤴"], [100, "Setnik", "💯"],
+  [125, "Legenda baru", "📜"], [150, "Piwny mędrzec", "🧙"], [175, "Strażnik kranu", "🛡️"], [200, "Arcymistrz kufla", "🏆"],
+  [250, "Wielki Piwowar", "⚗️"], [300, "Król Browarów", "👑"], [400, "Cesarz Chmielu", "🏛️"], [500, "Półbóg pianki", "⚡"],
+  [750, "Arcykapłan chmielu", "🔮"], [1000, "Bóg chmielu", "🌟"],
+];
+export const level = (n) => {
+  let k = 0;
+  while (k + 1 < LEVELS.length && n >= LEVELS[k + 1][0]) k++;
+  return { lvl: k + 1, k, name: LEVELS[k][1], ico: LEVELS[k][2], next: LEVELS[k + 1] };
+};
+
+export const ACH = [
+  { id: "jubilat", ico: "🎯", name: "Jubilat", desc: "Wbił okrągły numer licznika (wielokrotność 100)" },
+  { id: "lucky", ico: "🍀", name: "Szczęśliwy numer", desc: "Wbił numer z samych tych samych cyfr (111, 777…)" },
+  { id: "hat", ico: "🎩", name: "Hat-trick", desc: "3 piwa jednego dnia" },
+  { id: "five", ico: "🖐️", name: "Piątka", desc: "5 piw jednego dnia" },
+  { id: "owl", ico: "🦉", name: "Nocny marek", desc: "Piwo między 2:00 a 5:59" },
+  { id: "early", ico: "🌅", name: "Ranny ptaszek", desc: "Piwo przed 11:00" },
+  { id: "flash", ico: "⚡", name: "Błyskawica", desc: "Dwa piwa w odstępie do 15 minut" },
+  { id: "streak", ico: "🔥", name: "Seria", desc: "Piwo 3 dni z rzędu" },
+  { id: "multi", ico: "🍻", name: "Hurtownik", desc: "3 lub więcej piw w jednym poście (np. „181 182 183”)" },
+  { id: "star", ico: "⭐", name: "Gwiazda", desc: "Piwo z co najmniej 5 reakcjami" },
+  { id: "weekend", ico: "🎉", name: "Weekendowy wojownik", desc: "Piwo w piątek, sobotę i niedzielę tego samego weekendu" },
+  { id: "king", ico: "👑", name: "Menel tygodnia", desc: "Wygrał przynajmniej jeden pełny tydzień" },
+  { id: "century", ico: "💯", name: "Setka", desc: "100 piw łącznie" },
+  { id: "clash", ico: "🤝", name: "Kolizja", desc: "Wrzucił ten sam numer co ktoś inny" },
+  { id: "comeback", ico: "🐫", name: "Powrót", desc: "Wrócił po co najmniej 7 pełnych dniach bez piwa" },
+  { id: "newyear", ico: "🎆", name: "Otwieracz roku", desc: "Pierwsze piwo w nowym roku w grupie" },
+  { id: "opener", ico: "🔑", name: "Otwieracz dnia", desc: "Pierwsze piwo dnia w całej grupie" },
+  { id: "closer", ico: "🌙", name: "Zamykacz", desc: "Ostatnie piwo dnia w całej grupie" },
+  { id: "rescue", ico: "🚨", name: "Ratownik", desc: "Przerwał ciszę: pierwsze piwo grupy po co najmniej 18 godzinach bez piwa" },
+  { id: "nice", ico: "😏", name: "Nice", desc: "Wbił numer kończący się na 69" },
+  { id: "dragon", ico: "🐉", name: "Wejście smoka", desc: "Pierwsze piwo w ciągu godziny od dołączenia do czatu" },
+];
+
+export const achTip = (a, n) => esc(`${a.ico} ${a.name}: ${a.desc}${n > 1 ? ` (zdobyte ×${n})` : ""}`);
+export const lvTip = (p) => {
+  const lv = level(p.total);
+  return esc(lv.next ? `${p.total} piw. Do poz. ${lv.lvl + 1} „${lv.next[1]}” brakuje ${piw(lv.next[0] - p.total)}`
+    : `${p.total} piw. Maksymalny poziom!`);
+};
+
+function computeAchievements(weekWinners) {
+  const res = people.map(() => ({}));
+  const add = (p, id) => { res[p][id] = (res[p][id] || 0) + 1; };
+  const daysOf = people.map(() => new Map());
+  const lastT = people.map(() => null);
+  const lastDayOf = people.map(() => null);
+  const seenYear = new Set();
+  const dayFirst = new Map(), dayLast = new Map();
+  const joined = D.joined || [];
+  let lastAny = null;
+  for (const b of beers) {
+    if (b.k === "b") continue;  // backfill is a lump sum from the old chat, not real days
+    if (!dayFirst.has(b.day)) dayFirst.set(b.day, b.p);
+    dayLast.set(b.day, b.p);
+    if (lastAny !== null && b.t - lastAny >= 18 * 3600) add(b.p, "rescue");
+    lastAny = b.t;
+    if (b.n % 100 === 69 || b.n === 69) add(b.p, "nice");
+    if (lastT[b.p] === null && joined[b.p] && b.t - joined[b.p] <= 3600) add(b.p, "dragon");
+    if (b.n % 100 === 0 && b.k !== "c") add(b.p, "jubilat");
+    if (b.c >= 3 && b.k === "s") add(b.p, "multi");
+    if (b.r >= 5) add(b.p, "star");
+    if (b.n > 100 && /^(\d)\1+$/.test(String(b.n))) add(b.p, "lucky");
+    if (b.hour >= 2 && b.hour < 6) add(b.p, "owl");
+    if (b.hour >= 6 && b.hour < 11) add(b.p, "early");
+    if (lastT[b.p] !== null && b.t - lastT[b.p] <= 900) add(b.p, "flash");
+    if (lastDayOf[b.p] !== null && b.day - lastDayOf[b.p] - 1 >= 7) add(b.p, "comeback");  // 7 full days without a beer in between
+    if (b.k === "c") add(b.p, "clash");
+    const y = dateOfIdx(b.day).getFullYear();
+    if (!seenYear.has(y)) { seenYear.add(y); if (beers.find((x) => x.timed) !== b) add(b.p, "newyear"); }
+    lastT[b.p] = b.t; lastDayOf[b.p] = b.day;
+    daysOf[b.p].set(b.day, (daysOf[b.p].get(b.day) || 0) + b.c);
+  }
+  people.forEach((p, i) => {
+    const days = [...daysOf[i].keys()].sort((a, b) => a - b);
+    let run = 0, prev = null;
+    for (const d of days) {
+      const n = daysOf[i].get(d);
+      if (n >= 3) add(i, "hat");
+      if (n >= 5) add(i, "five");
+      run = prev !== null && d === prev + 1 ? run + 1 : 1;
+      if (run === 3) add(i, "streak");
+      prev = d;
+      if (dateOfIdx(d).getDay() === 5 && daysOf[i].has(d + 1) && daysOf[i].has(d + 2)) add(i, "weekend");
+    }
+    if (p.total >= 100) add(i, "century");
+  });
+  for (const w of weekWinners) for (const p of w.winners) add(p, "king");
+  for (const p of dayFirst.values()) add(p, "opener");
+  for (const [d, p] of dayLast) if (d < todayIdx) add(p, "closer");  // today is not over yet
+  return res;
+}
+
+export let achievements, weekWinners;
+export function computeRules() {
+  weekWinners = weeklyWinners();
+  achievements = computeAchievements(weekWinners.filter((w) => w.done));
+}

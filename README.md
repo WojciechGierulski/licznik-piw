@@ -101,5 +101,30 @@ python3 parse_export.py /tmp/sample --config /tmp/c.json --out /tmp/data.json --
 - Rozkład po godzinach i dniach tygodnia
 - Galeria sław: rekordy dnia/tygodnia, serie, najszybszy dublet, korony tygodnia, łowca jubileuszy, nocny marek, susza
 - 14 odznak (hat-trick, nocny marek, seria 5 dni, szczęśliwy numer, weekendowy wojownik…)
-- Piwosz tygodnia, pojedynek 1 na 1, ściana wstydu (posty bez zdjęcia)
+- Menel tygodnia, kamienie milowe (kto wbił każdą setkę), debiutanci
 
+
+## Struktura kodu
+
+```
+parse_export.py        eksport FB → site/data.json + review.md (reguły liczenia)
+config.json            ustawienia i ręczne decyzje (aliasy, backfill, VAR)
+update.sh              cotygodniowa aktualizacja: nazwij eksporty, przelicz, opublikuj
+tools/                 name_exports.py (nazwy folderów), make_sample.py + check_sample.py (test parsera)
+site/index.html        układ strony
+site/style.css         wygląd (kolory jasny/ciemny, karty, kufel, tabela)
+site/js/main.js        start: wczytuje data.json, rysuje sekcje, motyw, tooltipy
+site/js/model.js       dane: piwa, osoby, dni, tygodnie, serie
+site/js/rules.js       poziomy i odznaki (tu dodajesz nowe)
+site/js/format.js      liczby, daty, odmiana „piwo/piwa/piw”
+site/js/ui.js          wspólne drobiazgi: awatary, przyciski, odliczanie
+site/js/hero.js        baner z licznikiem i kuflem, kafelki, ostatni dzień
+site/js/leaderboard.js ranking
+site/js/charts.js      wykresy (Chart.js)
+site/js/records.js     galeria sław
+site/js/badges.js      tabela odznak i drabinka poziomów
+site/js/community.js   kamienie milowe, debiutanci, menel tygodnia
+site/js/lightbox.js    podgląd zdjęć
+```
+
+Bez frameworka i bez budowania: przeglądarka ładuje moduły JS bezpośrednio, więc wystarczy dowolny serwer plików.

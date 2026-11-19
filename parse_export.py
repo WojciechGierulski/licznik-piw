@@ -487,7 +487,6 @@ def main():
         # [unix seconds, person index, counter number, beers credited, kind, reactions, photo files]
         "beers": [[t, idx[w], n, c, kind_code[k], r, f] for t, w, n, c, k, r, f in beers],
         "joined": [first_seen.get(w, 0) // 1000 for w in people],  # first message in the chat
-        "rejected": rejected[-300:],
         "messages_total": len(msgs),
     }
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
