@@ -18,7 +18,7 @@
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
   --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
   --other: #b5b0a4;
-  --shadow: 0 1px 2px rgba(60, 40, 0, .06), 0 3px 8px rgba(60, 40, 0, .05);
+  --shadow: 0 1px 2px rgba(60, 40, 0, .05), 0 6px 20px rgba(60, 40, 0, .06);
   --hero-1: #2a1a05; --hero-2: #7a4a00; --hero-3: #e09a12;
   --gold: #e8b100;
 }
@@ -43,7 +43,7 @@
     --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
     --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
     --other: #5e5b54;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 3px 10px rgba(0, 0, 0, .2);
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
   }
 }
 :root[data-theme="dark"] {
@@ -66,7 +66,7 @@
   --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
   --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
   --other: #5e5b54;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 3px 10px rgba(0, 0, 0, .2);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
 }
 
 * { box-sizing: border-box; }
@@ -130,13 +130,13 @@ h3 { font-size: 14px; color: var(--ink-2); font-weight: 600; }
 
 /* the pint */
 .glass-wrap { text-align: center; }
-.glass { width: 150px; height: auto; display: block; margin: 0 auto; overflow: visible; }
+.glass { width: 150px; height: auto; display: block; margin: 0 auto; filter: drop-shadow(0 10px 24px rgba(0, 0, 0, .35)); overflow: visible; }
 .glass-bg { fill: rgba(255, 255, 255, .08); }
 .glass-edge { fill: none; stroke: rgba(255, 255, 255, .75); stroke-width: 3; stroke-linejoin: round; }
 .glass-shine { stroke: rgba(255, 255, 255, .35); stroke-width: 4; stroke-linecap: round; }
-.beer { transform: translateY(156px); transition: transform .9s cubic-bezier(.2, .8, .2, 1); }
+.beer { transform: translateY(156px); transition: transform 1.6s cubic-bezier(.2, .8, .2, 1); }
 .foam { fill: #fff6df; }
-.bub { fill: rgba(255, 255, 255, .75); animation: rise 3.2s 3 ease-in both; }  /* a few rounds on load, then still */
+.bub { fill: rgba(255, 255, 255, .75); animation: rise 3.2s infinite ease-in; }
 .b2 { animation-delay: .7s; animation-duration: 2.6s; }
 .b3 { animation-delay: 1.4s; }
 .b4 { animation-delay: 2s; animation-duration: 3.8s; }
@@ -248,7 +248,7 @@ table.lb td.r, table.lb th.r { text-align: right; }
 .ach.locked { --r: transparent; }
 .ach-ico {
   width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center; font-size: 28px;
-  background: var(--surface); box-shadow: 0 0 0 2px var(--r);
+  background: var(--surface); box-shadow: 0 0 0 2px var(--r), 0 0 16px -2px var(--r);
 }
 .ach.locked .ach-ico { filter: grayscale(1); opacity: .35; box-shadow: 0 0 0 1px var(--border); }
 .ach-name { font-weight: 700; font-size: 14px; }
@@ -310,6 +310,10 @@ table.lb td.r, table.lb th.r { text-align: right; }
 .weeks { display: grid; gap: 6px; font-size: 13.5px; }
 .weeks .row { display: grid; grid-template-columns: 92px minmax(0, 1fr) auto; gap: 10px; align-items: center; }
 .weeks .w { color: var(--muted); }
+.tip {
+  position: fixed; pointer-events: none; z-index: 10; background: var(--ink); color: var(--surface);
+  font-size: 12.5px; padding: 6px 9px; border-radius: 8px; opacity: 0; transition: opacity .1s; max-width: 260px;
+}
 footer { color: var(--muted); font-size: 12.5px; margin-top: 28px; line-height: 1.6; }
 footer a { color: var(--ink-2); }
 
@@ -331,6 +335,7 @@ footer a { color: var(--ink-2); }
 .record.link { transition: transform .15s, box-shadow .15s; }
 .record.link:hover, .record.link:focus-visible { transform: translateY(-3px); box-shadow: 0 0 0 2px var(--accent), var(--shadow); outline: none; }
 .record .cam { color: var(--accent-ink); white-space: nowrap; }
+.badges-inline span, .lvl[data-tip], .chip[data-tip] { cursor: help; }
 
 /* levels */
 .lvl-grid { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
@@ -401,7 +406,7 @@ footer a { color: var(--ink-2); }
 .weeks .row { padding: 4px 6px; }
 
 /* reveal on scroll */
-.reveal { opacity: 0; transform: translateY(8px); transition: opacity .25s ease, transform .25s ease-out; }
+.reveal { opacity: 0; transform: translateY(14px); transition: opacity .6s ease, transform .6s cubic-bezier(.2, .8, .2, 1); }
 .reveal.in { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) {
   .reveal { opacity: 1; transform: none; transition: none; }

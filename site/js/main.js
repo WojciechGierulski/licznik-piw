@@ -24,6 +24,29 @@ function applyTheme() {
 // sections that read colours from CSS and must redraw when the theme changes
 function renderThemed() { renderDaily(); renderRhythm(); renderLeaderboard(); renderHero(); renderAchievements(); }
 
+function wireTooltips() {
+  const tip = $("tip");
+  let tipTimer = null;
+  const showTip = (t, x, y) => {
+    tip.textContent = t.dataset.tip;
+    tip.style.opacity = 1;
+    tip.style.left = Math.max(8, Math.min(window.innerWidth - tip.offsetWidth - 8, x + 12)) + "px";
+    tip.style.top = Math.min(window.innerHeight - tip.offsetHeight - 8, y + 14) + "px";
+  };
+  document.addEventListener("mousemove", (e) => {
+    const t = e.target.closest && e.target.closest("[data-tip]");
+    if (!t) { if (!tipTimer) tip.style.opacity = 0; return; }
+    showTip(t, e.clientX, e.clientY);
+  });
+  document.addEventListener("click", (e) => {  // touch screens: tap a badge to see what it is for
+    const t = e.target.closest && e.target.closest("[data-tip]");
+    if (!t || t.closest("[data-gal]")) return;
+    showTip(t, e.clientX, e.clientY);
+    clearTimeout(tipTimer);
+    tipTimer = setTimeout(() => { tip.style.opacity = 0; tipTimer = null; }, 2500);
+  });
+}
+
 function revealOnScroll() {
   if (calm || !("IntersectionObserver" in window)) return;
   const io = new IntersectionObserver((es) => es.forEach((e) => {
@@ -55,7 +78,7 @@ function init(data) {
   renderThemed();
   renderRecords(); renderWeeks(); renderLevels(); renderMilestones(); renderRookies();
   renderFooter();
-  wireLeaderboard(); wireRange(); wireBadges(); wireLightbox();
+  wireLeaderboard(); wireRange(); wireBadges(); wireLightbox(); wireTooltips();
 }
 
 applyTheme();

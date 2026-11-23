@@ -1,7 +1,7 @@
 // Ranking table for week / month / year / all-time.
 import { esc, fmt, fold } from "./format.js";
 import { beers, dateOfIdx, dayIdxOf, firstDay, lastDay, people, perPerson, todayIdx, weekOf, weekStart } from "./model.js";
-import { ACH, achievements, level } from "./rules.js";
+import { ACH, achTip, achievements, level, lvTip } from "./rules.js";
 import { $, TOP, avatar, moreBtn, wireSeg } from "./ui.js";
 
 let lbPeriod = "week", lbAll = false, query = "";
@@ -42,7 +42,7 @@ export function renderLeaderboard() {
   $("leaderboard").innerHTML = `<table class="lb"><thead><tr><th>#</th><th>Zawodnik</th><th class="r">Piwa</th>${prev ? `<th class="r hide-sm">${prevLabel}</th>` : ""}<th class="hide-sm">Odznaki</th></tr></thead><tbody>${shown.map((r) => {
     const rank = rankNow.get(r.n);
     const lv = level(r.p.total);
-    const ach = ACH.filter((x) => achievements[r.p.i][x.id]).map((x) => x.ico).join("");
+    const ach = ACH.filter((x) => achievements[r.p.i][x.id]).map((x) => `<span data-tip="${achTip(x, achievements[r.p.i][x.id])}">${x.ico}</span>`).join("");
     let move = "";
     if (prev) {
       const pv = prev[r.p.i];
@@ -53,7 +53,7 @@ export function renderLeaderboard() {
       move = `<td class="r hide-sm num">${arrow} <span class="sub">${pv ? `(#${was}, ${fmt(pv)})` : ""}</span></td>`;
     }
     return `<tr class="${rank <= 3 ? `top${rank}` : ""}"><td class="rank ${rank <= 3 ? "top" : ""}">${rank <= 3 ? medals[rank - 1] : rank}</td>
-      <td><div class="who">${avatar(r.p)}<div style="min-width:0"><div class="name link" data-gal="p:${r.p.i}">${esc(r.p.name)}</div><div class="lvl">${lv.ico} Poz. ${lv.lvl} · ${lv.name}</div></div></div></td>
+      <td><div class="who">${avatar(r.p)}<div style="min-width:0"><div class="name link" data-gal="p:${r.p.i}">${esc(r.p.name)}</div><div class="lvl" data-tip="${lvTip(r.p)}">${lv.ico} Poz. ${lv.lvl} · ${lv.name}</div></div></div></td>
       <td class="r num"><b>${fmt(r.n)}</b></td>${move}
       <td class="badges-inline hide-sm">${ach}</td></tr>`;
   }).join("")}</tbody></table>${query ? "" : moreBtn(rows.length, lbAll, "lbMore")}`;

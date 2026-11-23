@@ -1,7 +1,7 @@
 // Badges (Steam-style: share of players, rarity, collectors) and the level ladder.
 import { esc, fmt, fmt1, fold, piw } from "./format.js";
 import { people } from "./model.js";
-import { ACH, LEVELS, achievements, level } from "./rules.js";
+import { ACH, LEVELS, achievements, level, lvTip } from "./rules.js";
 import { $, avatar, wireSeg } from "./ui.js";
 
 let showAllCollectors = false, showAllBadges = false, focus = null, sortBy = "common", query = "";
@@ -113,8 +113,8 @@ export function renderLevels() {
   const reached = at.filter((x) => x.length).length;
   $("levels").innerHTML = `<div class="lvl-ladder">${LEVELS.map(([need, nm, ico], k) => {
     const who = at[k].sort((a, b) => b.total - a.total);
-    const chips = who.slice(0, 8).map((p) => `<span class="chip">${esc(p.name)}</span>`).join("")
-      + (who.length > 8 ? `<span class="chip more">+${who.length - 8}</span>` : "");
+    const chips = who.slice(0, 8).map((p) => `<span class="chip" data-tip="${lvTip(p)}">${esc(p.name)}</span>`).join("")
+      + (who.length > 8 ? `<span class="chip more" data-tip="${esc(who.slice(8).map((p) => p.name).join(", "))}">+${who.length - 8}</span>` : "");
     return `<div class="lvl-row ${who.length ? "" : "empty-lvl"}"><span class="lvl-ico" aria-hidden="true">${ico}</span>
       <span class="lvl-n num">${k + 1}</span><span class="lvl-name">${nm}</span><span class="lvl-need num">od ${fmt(need)} ${need === 1 ? "piwa" : "piw"}</span>
       <span class="lvl-who">${chips || '<span class="sub">nikt jeszcze</span>'}</span></div>`;

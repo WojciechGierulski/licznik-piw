@@ -10,7 +10,7 @@ export const avatar = (p, size = "") => `<span class="av ${size}" style="--c:${c
 export const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 export function countUp(el, to) {
   if (calm) { el.textContent = fmt(to); return; }
-  const t0 = performance.now(), dur = 800;
+  const t0 = performance.now(), dur = 1300;
   const step = (now) => {
     const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
     el.textContent = fmt(to * e);
