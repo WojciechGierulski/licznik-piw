@@ -21,9 +21,8 @@ export function renderHero() {
     const base = k === 0 ? target - 100 : target - 1000;
     const pct = Math.max(0, Math.min(100, ((counter - base) / (target - base)) * 100));
     const left = target - counter;
-    const eta = rate > 0 ? shortFmt.format(dateOfIdx(todayIdx + Math.ceil(left / rate))) : "?";
     return `<div><div class="meter" role="meter" aria-valuemin="${base}" aria-valuemax="${target}" aria-valuenow="${counter}" aria-label="Do ${target}"><i style="width:${pct}%"></i></div>
-      <div class="meter-row"><span>Do <b>${fmt(target)}</b> brakuje ${piw(left)}</span><span>prognoza: ${eta}</span></div></div>`;
+      <div class="meter-row"><span>Do <b>${fmt(target)}</b> brakuje ${piw(left)}</span></div></div>`;
   }).join("") + millionLine(counter, rate);
 
   const thisW = weekOf(todayIdx);
