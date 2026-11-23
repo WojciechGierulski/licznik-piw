@@ -31,7 +31,6 @@ export function renderHero() {
   const wNow = sum(beers.filter((b) => b.week === thisW));
   const wPrevSame = sum(beers.filter((b) => b.week === thisW - 1 && b.day - weekStart(thisW - 1) <= dayInWeek));
   const today = sum(beers.filter((b) => b.day === todayIdx));
-  const yesterday = sum(beers.filter((b) => b.day === todayIdx - 1));
   const groupDays = [...byDay.keys()].sort((a, b) => a - b);
   const bestDay = groupDays.reduce((best, d) => (byDay.get(d) > (byDay.get(best) || 0) ? d : best), groupDays[0]);
   const prev30 = sum(beers.filter((b) => b.day > todayIdx - 60 && b.day <= todayIdx - 30)) / 30;
@@ -42,14 +41,13 @@ export function renderHero() {
     return `<span class="delta ${cls}">${d > 0 ? "▲ +" : d < 0 ? "▼ " : ""}${unit(d)}</span>`;
   };
   const tiles = [
-    ["📍", `Ostatni dzień (${shortFmt.format(dateOfIdx(todayIdx))})`, fmt(today), delta(today, yesterday, (d) => `${fmt(d)} vs dzień wcześniej`)],
     ["📆", "Ten tydzień", fmt(wNow), delta(wNow, wPrevSame, (d) => `${fmt(d)} vs ten moment tyg. temu`)],
     ["⚡", span < 30 ? `Średnio dziennie (${dni(span)})` : "Średnio dziennie (30 dni)", fmt1(rate),
       span < 30 ? `<span class="delta">${people.length} zawodników</span>` : delta(rate, prev30, (d) => `${fmt1(d)} vs poprzednie 30 dni`)],
     ["🏆", "Rekord dnia grupy", fmt(byDay.get(bestDay)), `<span class="delta">${dateFmt.format(dateOfIdx(bestDay))}</span>`],
   ];
   const last14 = Array.from({ length: 14 }, (_, k) => byDay.get(todayIdx - 13 + k) || 0);
-  tiles[2].push(sparkline(last14));
+  tiles[1].push(sparkline(last14));
   $("tiles").innerHTML = tiles.map(([ico, l, v, d, extra = ""]) => `<div class="tile"><span class="t-ico" aria-hidden="true">${ico}</span><div class="label">${l}</div><div class="value">${v}</div>${d}${extra}</div>`).join("");
 
   const todays = beers.filter((b) => b.day === todayIdx).slice(-8).reverse();

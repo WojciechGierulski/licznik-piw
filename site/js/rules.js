@@ -1,5 +1,4 @@
 // Levels and badges: what can be earned and who earned what.
-import { esc, piw } from "./format.js";
 import { D, beers, dateOfIdx, people, todayIdx, weeklyWinners } from "./model.js";
 
 // [beers needed (all-time), name, icon]
@@ -47,13 +46,6 @@ export const ACH = [
   { id: "splitg", ico: "🇮🇪", name: "Split the G", desc: "Przełamał G w Guinnessie (zatwierdzone przez grupę)" },
   { id: "dragon", ico: "🐉", name: "Wejście smoka", desc: "Pierwsze piwo w ciągu godziny od dołączenia do czatu" },
 ];
-
-export const achTip = (a, n) => esc(`${a.ico} ${a.name}: ${a.desc}${n > 1 ? ` (zdobyte ×${n})` : ""}`);
-export const lvTip = (p) => {
-  const lv = level(p.total);
-  return esc(lv.next ? `${p.total} piw. Do poz. ${lv.lvl + 1} „${lv.next[1]}” brakuje ${piw(lv.next[0] - p.total)}`
-    : `${p.total} piw. Maksymalny poziom!`);
-};
 
 // every counter number a post covers: "184-190" covers 184…190
 const numbersOf = (b) => Array.from({ length: b.c }, (_, k) => b.n - b.c + 1 + k);

@@ -1,16 +1,17 @@
 // Badges (Steam-style: share of players, rarity, collectors) and the level ladder.
 import { esc, fmt, fmt1, fold, piw } from "./format.js";
 import { people } from "./model.js";
-import { ACH, LEVELS, achievements, level, lvTip } from "./rules.js";
+import { ACH, LEVELS, achievements, level } from "./rules.js";
 import { $, avatar, wireSeg } from "./ui.js";
 
 let showAllCollectors = false, showAllBadges = false, focus = null, sortBy = "common", query = "";
+let openBadge = null, openAll = false;  // badge expanded to list its holders
 
 // Steam-like rarity by the share of players who unlocked a badge
 const RARITY = [[30, "common", "Pospolita"], [10, "rare", "Rzadka"], [3, "epic", "Epicka"], [0.01, "legendary", "Legendarna"]];
 const rarityOf = (pct) => (RARITY.find(([min]) => pct >= min) || [0, "locked", "Nikt jeszcze"]);
 const badgeCount = (p) => ACH.reduce((n, a) => n + (achievements[p.i][a.id] ? 1 : 0), 0);
-const MAX_NAMES = 25;  // tooltip with holders stays readable even with hundreds of them
+const MAX_HOLDERS = 60;  // an expanded badge lists this many holders before "show all"
 
 export function renderAchievements() {
   renderBadgeGrid();
@@ -33,9 +34,8 @@ function renderBadgeGrid() {
     const [, cls, label] = rarityOf(pct);
     const mine = fp && achievements[fp.i][a.id];
     const stack = holders.slice(0, 5).map((p) => avatar(p, "sm")).join("");
-    const names = holders.slice(0, MAX_NAMES).map((p) => p.name + (achievements[p.i][a.id] > 1 ? ` ×${achievements[p.i][a.id]}` : "")).join(", ")
-      + (holders.length > MAX_NAMES ? ` i ${holders.length - MAX_NAMES} innych` : "");
-    return `<div class="ach ${cls} ${fp ? (mine ? "mine" : "dim") : ""}">
+    const open = openBadge === a.id;
+    return `<div class="ach ${cls} ${fp ? (mine ? "mine" : "dim") : ""} ${open ? "open" : ""}" data-badge="${a.id}" role="button" tabindex="0" aria-expanded="${open}">
       <div class="ach-ico" aria-hidden="true">${a.ico}</div>
       <div class="ach-body">
         <div class="ach-name">${esc(a.name)}${mine ? ' <span class="ach-check">✓</span>' : ""}</div>
@@ -45,14 +45,24 @@ function renderBadgeGrid() {
       <div class="ach-side">
         <div class="ach-pct">${holders.length ? `${fmt1(pct)}%` : "0%"}</div>
         <div class="ach-rar">${label}</div>
-        ${holders.length ? `<div class="ach-stack" data-tip="${esc(names)}">${stack}${holders.length > 5 ? `<span class="ach-more">+${holders.length - 5}</span>` : ""}</div>` : ""}
+        ${holders.length ? `<div class="ach-stack">${stack}${holders.length > 5 ? `<span class="ach-more">+${holders.length - 5}</span>` : ""}</div>` : ""}
       </div>
+      ${open ? holderList(a, holders) : ""}
     </div>`;
   }).join("") + (fp || stats.length <= 12 ? "" : `<button class="more-btn ach-all" type="button" id="achAll">${showAllBadges ? "Pokaż mniej" : `Pokaż wszystkie odznaki (${stats.length})`}</button>`);
   if ($("achAll")) $("achAll").onclick = () => { showAllBadges = !showAllBadges; renderBadgeGrid(); };
   $("achievementsSub").textContent = fp
     ? `${fp.name}: ${badgeCount(fp)} z ${ACH.length} odznak`
     : `${ACH.length} odznak · procent to część z ${n} zawodników, którzy ją mają`;
+}
+
+function holderList(a, holders) {
+  if (!holders.length) return `<div class="ach-holders"><span class="sub">Jeszcze nikt. Bądź pierwszy.</span></div>`;
+  const shown = openAll ? holders : holders.slice(0, MAX_HOLDERS);
+  return `<div class="ach-holders">${shown.map((p) => {
+    const times = achievements[p.i][a.id];
+    return `<span class="holder">${avatar(p, "sm")}${esc(p.name)}${times > 1 ? ` <b>×${times}</b>` : ""}</span>`;
+  }).join("")}${holders.length > MAX_HOLDERS ? `<button class="more-btn" type="button" data-all="1">${openAll ? "Pokaż mniej" : `Pokaż wszystkich (${holders.length})`}</button>` : ""}</div>`;
 }
 
 function renderCollectors() {
@@ -76,6 +86,17 @@ function pick(i) {
 }
 
 export function wireBadges() {
+  const toggle = (card) => { openBadge = openBadge === card.dataset.badge ? null : card.dataset.badge; openAll = false; renderBadgeGrid(); };
+  $("achievements").addEventListener("click", (e) => {
+    if (e.target.closest("[data-all]")) { openAll = !openAll; renderBadgeGrid(); return; }
+    if (e.target.closest(".ach-holders")) return;  // clicks inside the list don't collapse it
+    const card = e.target.closest(".ach[data-badge]");
+    if (card) toggle(card);
+  });
+  $("achievements").addEventListener("keydown", (e) => {
+    const card = e.target.closest(".ach[data-badge]");
+    if (card && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggle(card); }
+  });
   wireSeg("achSort", "s", (s) => { sortBy = s; renderBadgeGrid(); });
   $("collList").addEventListener("click", (e) => { const row = e.target.closest(".coll-row"); if (row) pick(+row.dataset.p); });
   $("collSearch").addEventListener("input", (e) => { query = fold(e.target.value.trim()); renderCollectors(); });
@@ -92,8 +113,8 @@ export function renderLevels() {
   const reached = at.filter((x) => x.length).length;
   $("levels").innerHTML = `<div class="lvl-ladder">${LEVELS.map(([need, nm, ico], k) => {
     const who = at[k].sort((a, b) => b.total - a.total);
-    const chips = who.slice(0, 8).map((p) => `<span class="chip" data-tip="${lvTip(p)}">${esc(p.name)}</span>`).join("")
-      + (who.length > 8 ? `<span class="chip more" data-tip="${esc(who.slice(8).map((p) => p.name).join(", "))}">+${who.length - 8}</span>` : "");
+    const chips = who.slice(0, 8).map((p) => `<span class="chip">${esc(p.name)}</span>`).join("")
+      + (who.length > 8 ? `<span class="chip more">+${who.length - 8}</span>` : "");
     return `<div class="lvl-row ${who.length ? "" : "empty-lvl"}"><span class="lvl-ico" aria-hidden="true">${ico}</span>
       <span class="lvl-n num">${k + 1}</span><span class="lvl-name">${nm}</span><span class="lvl-need num">od ${fmt(need)} ${need === 1 ? "piwa" : "piw"}</span>
       <span class="lvl-who">${chips || '<span class="sub">nikt jeszcze</span>'}</span></div>`;
