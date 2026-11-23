@@ -1,29 +1,40 @@
 // Badges (Steam-style: share of players, rarity, collectors) and the level ladder.
-import { esc, fmt, fmt1, piw } from "./format.js";
+import { esc, fmt, fmt1, fold, piw } from "./format.js";
 import { people } from "./model.js";
 import { ACH, LEVELS, achievements, level, lvTip } from "./rules.js";
-import { $, avatar } from "./ui.js";
+import { $, avatar, wireSeg } from "./ui.js";
 
-let showAllCollectors = false, showAllBadges = false, focus = null;  // focus: person whose badges are highlighted
+let showAllCollectors = false, showAllBadges = false, focus = null, sortBy = "common", query = "";
 
 // Steam-like rarity by the share of players who unlocked a badge
 const RARITY = [[30, "common", "Pospolita"], [10, "rare", "Rzadka"], [3, "epic", "Epicka"], [0.01, "legendary", "Legendarna"]];
 const rarityOf = (pct) => (RARITY.find(([min]) => pct >= min) || [0, "locked", "Nikt jeszcze"]);
+const badgeCount = (p) => ACH.reduce((n, a) => n + (achievements[p.i][a.id] ? 1 : 0), 0);
+const MAX_NAMES = 25;  // tooltip with holders stays readable even with hundreds of them
 
 export function renderAchievements() {
-  const n = people.length;
+  renderBadgeGrid();
+  renderCollectors();
+}
+
+function renderBadgeGrid() {
+  const n = people.length, fp = focus === null ? null : people[focus];
   const stats = ACH.map((a) => {
-    const holders = people.filter((p) => achievements[p.i][a.id]).sort((x, y) => achievements[y.i][a.id] - achievements[x.i][a.id] || y.total - x.total);
+    const holders = people.filter((p) => achievements[p.i][a.id])
+      .sort((x, y) => achievements[y.i][a.id] - achievements[x.i][a.id] || y.total - x.total);
     return { a, holders, pct: (holders.length / n) * 100 };
-  }).sort((x, y) => y.pct - x.pct);
-  const fp = focus === null ? null : people[focus];
+  });
+  // most common first, or rarest first; badges nobody has stay at the end either way
+  stats.sort((x, y) => (!x.holders.length - !y.holders.length) || (sortBy === "rare" ? x.pct - y.pct : y.pct - x.pct));
+  if (fp) stats.sort((x, y) => !achievements[fp.i][x.a.id] - !achievements[fp.i][y.a.id]);  // stable: theirs first
 
   const visible = showAllBadges || fp ? stats : stats.slice(0, 12);
   $("achievements").innerHTML = visible.map(({ a, holders, pct }) => {
     const [, cls, label] = rarityOf(pct);
     const mine = fp && achievements[fp.i][a.id];
     const stack = holders.slice(0, 5).map((p) => avatar(p, "sm")).join("");
-    const names = esc(holders.map((p) => p.name + (achievements[p.i][a.id] > 1 ? ` ×${achievements[p.i][a.id]}` : "")).join(", "));
+    const names = holders.slice(0, MAX_NAMES).map((p) => p.name + (achievements[p.i][a.id] > 1 ? ` ×${achievements[p.i][a.id]}` : "")).join(", ")
+      + (holders.length > MAX_NAMES ? ` i ${holders.length - MAX_NAMES} innych` : "");
     return `<div class="ach ${cls} ${fp ? (mine ? "mine" : "dim") : ""}">
       <div class="ach-ico" aria-hidden="true">${a.ico}</div>
       <div class="ach-body">
@@ -34,29 +45,45 @@ export function renderAchievements() {
       <div class="ach-side">
         <div class="ach-pct">${holders.length ? `${fmt1(pct)}%` : "0%"}</div>
         <div class="ach-rar">${label}</div>
-        ${holders.length ? `<div class="ach-stack" data-tip="${names}">${stack}${holders.length > 5 ? `<span class="ach-more">+${holders.length - 5}</span>` : ""}</div>` : ""}
+        ${holders.length ? `<div class="ach-stack" data-tip="${esc(names)}">${stack}${holders.length > 5 ? `<span class="ach-more">+${holders.length - 5}</span>` : ""}</div>` : ""}
       </div>
     </div>`;
   }).join("") + (fp || stats.length <= 12 ? "" : `<button class="more-btn ach-all" type="button" id="achAll">${showAllBadges ? "Pokaż mniej" : `Pokaż wszystkie odznaki (${stats.length})`}</button>`);
-  if ($("achAll")) $("achAll").onclick = () => { showAllBadges = !showAllBadges; renderAchievements(); };
-
-  const total = (p) => ACH.filter((a) => achievements[p.i][a.id]).length;
-  const coll = [...people].sort((x, y) => total(y) - total(x) || y.total - x.total);
-  const shown = showAllCollectors ? coll : coll.slice(0, 10);
-  $("achKey").innerHTML = `<h3>Kolekcjonerzy</h3><div class="sub">Kliknij osobę, żeby zobaczyć jej odznaki</div>
-    <div class="coll">${shown.map((p) => `<button type="button" class="coll-row ${focus === p.i ? "on" : ""}" data-p="${p.i}">
-      ${avatar(p, "sm")}<span class="coll-name">${esc(p.name)}</span>
-      <span class="coll-bar"><i style="width:${(total(p) / ACH.length) * 100}%"></i></span><span class="coll-n num">${total(p)}/${ACH.length}</span></button>`).join("")}</div>
-    ${coll.length > 10 ? `<button class="more-btn" type="button" id="collMore">${showAllCollectors ? "Pokaż mniej" : `Pokaż wszystkich (${coll.length})`}</button>` : ""}
-    ${fp ? `<button class="more-btn" type="button" id="collReset">Pokaż wszystkie odznaki</button>` : ""}`;
+  if ($("achAll")) $("achAll").onclick = () => { showAllBadges = !showAllBadges; renderBadgeGrid(); };
   $("achievementsSub").textContent = fp
-    ? `${fp.name}: ${total(fp)} z ${ACH.length} odznak`
+    ? `${fp.name}: ${badgeCount(fp)} z ${ACH.length} odznak`
     : `${ACH.length} odznak · procent to część z ${n} zawodników, którzy ją mają`;
-  $("achKey").querySelectorAll(".coll-row").forEach((el) => {
-    el.onclick = () => { focus = focus === +el.dataset.p ? null : +el.dataset.p; renderAchievements(); };
+}
+
+function renderCollectors() {
+  const coll = [...people].sort((x, y) => badgeCount(y) - badgeCount(x) || y.total - x.total);
+  const place = new Map(coll.map((p, k) => [p.i, k + 1]));
+  const matches = query ? coll.filter((p) => fold(p.name).includes(query)) : coll;
+  const shown = showAllCollectors ? matches : matches.slice(0, 10);
+  $("collList").innerHTML = shown.length ? shown.map((p) => `<button type="button" class="coll-row ${focus === p.i ? "on" : ""}" data-p="${p.i}">
+      <span class="coll-place num">${place.get(p.i)}.</span>${avatar(p, "sm")}<span class="coll-name">${esc(p.name)}</span>
+      <span class="coll-bar"><i style="width:${(badgeCount(p) / ACH.length) * 100}%"></i></span><span class="coll-n num">${badgeCount(p)}/${ACH.length}</span></button>`).join("")
+    : `<div class="empty">Nikogo takiego</div>`;
+  $("collBtns").innerHTML = (matches.length > 10 ? `<button class="more-btn" type="button" id="collMore">${showAllCollectors ? "Pokaż mniej" : `Pokaż wszystkich (${matches.length})`}</button>` : "")
+    + (focus !== null ? ` <button class="more-btn" type="button" id="collReset">Wszystkie odznaki</button>` : "");
+  if ($("collMore")) $("collMore").onclick = () => { showAllCollectors = !showAllCollectors; renderCollectors(); };
+  if ($("collReset")) $("collReset").onclick = () => pick(null);
+}
+
+function pick(i) {
+  focus = focus === i ? null : i;
+  renderAchievements();
+}
+
+export function wireBadges() {
+  wireSeg("achSort", "s", (s) => { sortBy = s; renderBadgeGrid(); });
+  $("collList").addEventListener("click", (e) => { const row = e.target.closest(".coll-row"); if (row) pick(+row.dataset.p); });
+  $("collSearch").addEventListener("input", (e) => { query = fold(e.target.value.trim()); renderCollectors(); });
+  $("collSearch").addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    const first = $("collList").querySelector(".coll-row");
+    if (first) { focus = null; pick(+first.dataset.p); }
   });
-  if ($("collMore")) $("collMore").onclick = () => { showAllCollectors = !showAllCollectors; renderAchievements(); };
-  if ($("collReset")) $("collReset").onclick = () => { focus = null; renderAchievements(); };
 }
 
 export function renderLevels() {

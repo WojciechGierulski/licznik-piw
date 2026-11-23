@@ -7,7 +7,7 @@ import { renderHero } from "./hero.js";
 import { renderLeaderboard, wireLeaderboard } from "./leaderboard.js";
 import { renderDaily, renderRhythm, wireRange } from "./charts.js";
 import { renderRecords } from "./records.js";
-import { renderAchievements, renderLevels } from "./badges.js";
+import { renderAchievements, renderLevels, wireBadges } from "./badges.js";
 import { renderMilestones, renderRookies, renderWeeks } from "./community.js";
 import { wireLightbox } from "./lightbox.js";
 
@@ -78,7 +78,7 @@ function init(data) {
   renderThemed();
   renderRecords(); renderWeeks(); renderLevels(); renderMilestones(); renderRookies();
   renderFooter();
-  wireLeaderboard(); wireRange(); wireLightbox(); wireTooltips();
+  wireLeaderboard(); wireRange(); wireBadges(); wireLightbox(); wireTooltips();
 }
 
 applyTheme();

@@ -1,6 +1,7 @@
 // Data model: turns data.json into beers and people, plus generic aggregations.
 
 export let D, people, beers, byDay, firstDay, lastDay, todayIdx;
+let live = [];  // beers with a real timestamp (no backfill), computed once
 export const dayIdxOf = (date) => Math.round(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 864e5);
 export const dateOfIdx = (i) => { const d = new Date(i * 864e5); return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); };
 export const weekOf = (dayIdx) => Math.floor((dayIdx + 3) / 7); // Monday-based (1970-01-01 was a Thursday)
@@ -16,6 +17,8 @@ export function prepare(data) {
     people[p].total += c;
     return { t, p, n, c, k, r: r || 0, f: f || [], timed: k !== "b", day, week: weekOf(day), hour: local.getHours(), dow: (dateOfIdx(day).getDay() + 6) % 7 };
   }).sort((a, b) => a.t - b.t);
+  beers.forEach((b, i) => { b.id = i; });
+  live = beers.filter((b) => b.timed);
   // colours follow the person (all-time rank), never the current filter
   const order = [...people].sort((a, b) => b.total - a.total);
   order.forEach((p, r) => { p.slot = r < 8 ? r + 1 : 0; p.rank = r; });
@@ -29,13 +32,20 @@ export function prepare(data) {
   lastDay = Math.max(todayIdx, beers[beers.length - 1].day);
 }
 
-export const timed = () => beers.filter((b) => b.timed);
+export const timed = () => live;
 export const sum = (arr) => arr.reduce((s, b) => s + b.c, 0);
 export const perPerson = (arr) => {
   const m = new Array(people.length).fill(0);
   for (const b of arr) m[b.p] += b.c;
   return m;
 };
+
+// beer days of every person in one pass (sorted, unique)
+export function daysByPerson() {
+  const out = people.map(() => []);
+  for (const b of live) { const d = out[b.p]; if (d[d.length - 1] !== b.day) d.push(b.day); }
+  return out;
+}
 
 export function streaks(dayList) {
   // longest and current run of consecutive days

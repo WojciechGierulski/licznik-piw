@@ -26,7 +26,7 @@ export function renderRookies() {
   const thisWeek = list.filter((b) => b.day >= weekStartIdx).length;
   $("rookiesSub").textContent = `Pierwsze zaliczone piwo każdego zawodnika. W tym tygodniu ${thisWeek} ${plural(thisWeek, "nowy", "nowych", "nowych")}.`;
   galleries.rookies = { title: "Debiuty", list: list.filter((b) => b.f.length) };
-  $("rookies").innerHTML = list.slice(0, 12).map((b) => `<div class="row link" data-gal="b:${beers.indexOf(b)}">
+  $("rookies").innerHTML = list.slice(0, 12).map((b) => `<div class="row link" data-gal="b:${b.id}">
     <span class="w">${shortFmt.format(dateOfIdx(b.day))}</span><span class="who">${avatar(people[b.p], "sm")}${esc(people[b.p].name)}${achievements[b.p].dragon ? ' <span data-tip="Wejście smoka: piwo w godzinę od dołączenia">🐉</span>' : ""}</span>
     <span class="num sub">#${b.n}</span></div>`).join("")
     + (list.length > 12 ? `<button class="more-btn" type="button" data-gal="rookies">Wszystkie debiuty (${list.length}) 📷</button>` : "");

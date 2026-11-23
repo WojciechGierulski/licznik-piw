@@ -59,6 +59,8 @@
   <section class="card grid-1">
     <div class="card-head">
       <h2><span class="h-ico">🏆</span>Ranking</h2>
+      <label class="search"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l4.5 4.5"/></svg>
+        <input id="lbSearch" type="search" placeholder="Znajdź siebie…" autocomplete="off" spellcheck="false" aria-label="Szukaj w rankingu"></label>
       <div class="seg" id="lbSeg" role="group" aria-label="Okres rankingu">
         <button data-p="week" aria-pressed="true">Tydzień</button>
         <button data-p="month" aria-pressed="false">Miesiąc</button>
@@ -110,10 +112,23 @@
   </section>
 
   <section class="card grid-1">
-    <div class="card-head"><div><h2><span class="h-ico">🎖️</span>Odznaki</h2><div class="sub" id="achievementsSub"></div></div></div>
+    <div class="card-head">
+      <div><h2><span class="h-ico">🎖️</span>Odznaki</h2><div class="sub" id="achievementsSub"></div></div>
+      <div class="seg" id="achSort" role="group" aria-label="Sortowanie odznak">
+        <button data-s="common" aria-pressed="true">Najczęstsze</button>
+        <button data-s="rare" aria-pressed="false">Najrzadsze</button>
+      </div>
+    </div>
     <div class="ach-layout">
       <div class="ach-grid" id="achievements"></div>
-      <aside class="ach-key" id="achKey"></aside>
+      <aside class="ach-key">
+        <h3>Kolekcjonerzy</h3>
+        <div class="sub">Wpisz imię albo kliknij osobę, żeby zobaczyć jej odznaki</div>
+        <label class="search"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l4.5 4.5"/></svg>
+          <input id="collSearch" type="search" placeholder="Szukaj osoby…" autocomplete="off" spellcheck="false" aria-label="Szukaj kolekcjonera"></label>
+        <div class="coll" id="collList"></div>
+        <div id="collBtns"></div>
+      </aside>
     </div>
   </section>
 

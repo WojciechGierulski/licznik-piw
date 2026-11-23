@@ -10,6 +10,8 @@ export const plural = (n, one, few, many) => {
 };
 export const piw = (n) => `${fmt(n)} ${plural(n, "piwo", "piwa", "piw")}`;
 export const dni = (n) => `${fmt(n)} ${plural(n, "dzień", "dni", "dni")}`;
+// lowercase without Polish diacritics, for search: "Sałaga" → "salaga"
+export const fold = (s) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ł/g, "l");
 export const DOW = ["Pn", "Wt", "Śr", "Cz", "Pt", "Sb", "Nd"];
 export const dateFmt = new Intl.DateTimeFormat("pl-PL", { day: "numeric", month: "short", year: "numeric" });
 export const dayFmt = new Intl.DateTimeFormat("pl-PL", { weekday: "long", day: "numeric", month: "short" });

@@ -1,7 +1,7 @@
 // Hall of fame tiles.
 import { dateFmt, dni, esc, piw, timeFmt } from "./format.js";
 import { galleries } from "./lightbox.js";
-import { beers, byDay, dateOfIdx, leaders, people, perPerson, perPersonCount, streaks, timed, weekStart } from "./model.js";
+import { beers, byDay, dateOfIdx, daysByPerson, leaders, people, perPerson, perPersonCount, streaks, timed, weekStart } from "./model.js";
 import { weekWinners } from "./rules.js";
 import { $ } from "./ui.js";
 
@@ -26,7 +26,7 @@ export function renderRecords() {
   recs.push(["🍻", "Najlepszy tydzień grupy", piw(gw.total), "", `od ${dateFmt.format(dateOfIdx(weekStart(gw.week)))}`,
     beers.filter((b) => b.week === gw.week)]);
   // streaks
-  const runs = people.map((p) => streaks([...new Set(timed().filter((b) => b.p === p.i).map((b) => b.day))]));
+  const runs = daysByPerson().map(streaks);
   const bestLen = leaders(runs.map((s) => s.best.len));
   const curLen = leaders(runs.map((s) => s.current));
   if (bestLen.length) {

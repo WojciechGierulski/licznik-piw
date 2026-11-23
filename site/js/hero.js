@@ -56,7 +56,7 @@ export function renderHero() {
   $("todayTitle").textContent = `Ostatni dzień w danych · ${shortFmt.format(dateOfIdx(todayIdx))}`;
   $("todaySub").textContent = todays.length ? piw(today) : "";
   $("todayFeed").innerHTML = todays.length
-    ? todays.map((b) => `<div class="row link" data-gal="b:${beers.indexOf(b)}"><span class="t num">${timeFmt.format(new Date(b.t * 1000))}</span>${avatar(people[b.p], "sm")}<span>${esc(people[b.p].name)}${b.c > 1 ? ` <span class="sub">×${b.c}</span>` : ""}</span><span class="n num">#${b.n}</span></div>`).join("")
+    ? todays.map((b) => `<div class="row link" data-gal="b:${b.id}"><span class="t num">${timeFmt.format(new Date(b.t * 1000))}</span>${avatar(people[b.p], "sm")}<span>${esc(people[b.p].name)}${b.c > 1 ? ` <span class="sub">×${b.c}</span>` : ""}</span><span class="n num">#${b.n}</span></div>`).join("")
     : `<div class="empty">Tego dnia jeszcze nic. Kto otwiera?</div>`;
 }
 
