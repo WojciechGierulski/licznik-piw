@@ -24,7 +24,7 @@ export function renderHero() {
     const eta = rate > 0 ? shortFmt.format(dateOfIdx(todayIdx + Math.ceil(left / rate))) : "?";
     return `<div><div class="meter" role="meter" aria-valuemin="${base}" aria-valuemax="${target}" aria-valuenow="${counter}" aria-label="Do ${target}"><i style="width:${pct}%"></i></div>
       <div class="meter-row"><span>Do <b>${fmt(target)}</b> brakuje ${piw(left)}</span><span>prognoza: ${eta}</span></div></div>`;
-  }).join("");
+  }).join("") + millionLine(counter, rate);
 
   const thisW = weekOf(todayIdx);
   const dayInWeek = todayIdx - weekStart(thisW);
@@ -68,4 +68,13 @@ function sparkline(vals) {
     return `<rect x="${k * (w + gap)}" y="${h - bh}" width="${w}" height="${bh}" rx="2" class="${k === vals.length - 1 ? "now" : ""}"><title>${v}</title></rect>`;
   }).join("");
   return `<svg class="spark" viewBox="0 0 ${vals.length * (w + gap) - gap} ${h}" role="img" aria-label="Piwa dziennie, ostatnie ${vals.length} dni">${bars}</svg>`;
+}
+
+// the group's goal: a million beers, and how long it takes at the current pace
+function millionLine(counter, rate) {
+  const left = 1e6 - counter;
+  if (left <= 0) return `<div class="million">🏁 <b>Milion zrobiony!</b></div>`;
+  const years = rate > 0 ? left / rate / 365.25 : null;
+  const when = years === null ? "" : ` · w tym tempie ok. <b>${new Date(dateOfIdx(todayIdx).getTime() + years * 365.25 * 864e5).getFullYear()}</b> roku (${fmt1(years)} lat)`;
+  return `<div class="million">🎯 Do miliona: <b>${fmt(left)}</b> piw${when}</div>`;
 }

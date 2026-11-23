@@ -22,7 +22,8 @@ Counting rules (see README for the config keys):
   3. A single number that skips ahead (52 -> 54) credits the poster with as many beers
      as photos they sent; the missing numbers go to whoever posted an unclaimed photo
      in between, or to the poster if nobody did, or to review.md if it is ambiguous.
-  4. The same number posted by another person within collision_window_sec counts too.
+  4. An already used number (up to miscount_back below the counter) with a photo still counts:
+     the beer is real, only the numbering is off (two people posting "418" at once).
   5. A bare number without a photo still moves the counter (others continue from it)
      but earns nothing. Chatter with a number and no photo is ignored entirely.
 """
@@ -44,7 +45,8 @@ DEFAULT_CONFIG = {
     "photo_same_sender": True,
     "max_jump": 12,
     "burst_sec": 60,
-    "collision_window_sec": 900,
+    "miscount_back": 5,     # an already used number (up to this many back) with a photo still counts
+    "text_max_jump": 3,     # a number inside a sentence may skip at most this many
     "resync_lookahead": 3,
     "day_start_hour": 6,
     "aliases": {},          # {"Name in export or backfill": "Canonical name"}
@@ -234,8 +236,8 @@ def count_beers(msgs, cfg):
         if not m["text"] or m["ts"] in skip:
             continue
         nums, bare, corr = numbers_in(m["text"])
-        if not nums:
-            continue
+        if not nums or (not bare and "?" in m["text"]):
+            continue  # "kto przed 301?" is a question, not a beer
         p = posts[-1] if posts else None
         if (p and bare and p["bare"] and p["who"] == m["who"] and m["ts"] - p["ts_last"] <= cfg["burst_sec"] * 1000
                 and nums[0] > p["nums"][-1]):
@@ -285,8 +287,8 @@ def count_beers(msgs, cfg):
                 continue
 
         new = sorted({n for n in p["nums"] if 0 < n - counter <= max_jump})
-        if new and not p["bare"] and new[0] != counter + 1:
-            new = []  # chatter must hit exactly the next number ("jutro grill, 15 osób")
+        if new and not p["bare"] and new[0] - counter > cfg["text_max_jump"]:
+            new = []  # a number inside chatter must be close to the counter ("To 378", not "jutro grill, 15 osób")
         # keep only the run that continues the counter ("184-190", "181 182 183")
         run = []
         for n in new:
@@ -306,11 +308,13 @@ def count_beers(msgs, cfg):
 
         if not run:
             n0 = p["nums"][0]
-            if p["bare"] and len(p["nums"]) == 1 and n0 == counter and last and last[1] != p["who"] \
-                    and p["ts"] - last[2] <= cfg["collision_window_sec"] * 1000 and photos:
+            # a number that was already taken, but with a photo: the beer is real, only the count is off
+            # ("329" after "330,331"; two people posting "418" in the same second)
+            if p["bare"] and len(p["nums"]) == 1 and counter - cfg["miscount_back"] <= n0 <= counter and photos \
+                    and not (last and last[1] == p["who"] and n0 == last[0]):
                 pool.take(photos[:1])
                 credit(p["ts"], p["who"], n0, 1, "collision", reactions(p, photos[:1]), photos[:1])
-                review.append(f"Kolizja: {p['who']} też wrzucił #{n0} (po {last[1]}), obaj dostają piwo")
+                review.append(f"Zajęty numer #{n0} od {p['who']} (licznik był na {counter}), ale ze zdjęciem: piwo zaliczone")
             elif p["bare"] and n0 != counter and p["nums"][-1] > counter and continues_from(p["nums"][-1], j):
                 review.append(f"Resynchronizacja licznika {counter} → {p['nums'][-1]}: „{p['text']}” ({p['who']})")
                 counter = p["nums"][-1]

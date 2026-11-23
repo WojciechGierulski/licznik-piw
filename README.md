@@ -68,7 +68,8 @@ Aktualizacja: `./update.sh` (patrz wyżej), który commituje `data.json` i robi 
 | `photo_same_sender` | true | Zdjęcie od autora numeru. Wyjątek: ktoś wpisał numer za kumpla, który wrzucił zdjęcie bez numeru |
 | `max_jump` | 12 | Największy skok licznika w jednym poście |
 | `burst_sec` | 60 | Kilka numerów od jednej osoby w ciągu minuty to jeden post (35, 36, 37…) |
-| `collision_window_sec` | 900 | Ten sam numer od innej osoby w tym czasie: obie dostają piwo |
+| `miscount_back` | 5 | Zajęty numer (do 5 wstecz) ze zdjęciem i tak się liczy, bo piwo było, tylko numeracja się rozjechała |
+| `text_max_jump` | 3 | Numer w zdaniu („To 378”) może przeskoczyć licznik najwyżej o tyle. Pytania („kto przed 301?”) się nie liczą |
 | `resync_lookahead` | 3 | Numer spoza kolejności akceptowany, jeśli tyle kolejnych postów leci dalej od niego |
 | `day_start_hour` | 6 | Piwa przed 6:00 liczą się do poprzedniego dnia |
 | `aliases` | | Scalanie nazw: `{"Wojciech Gierulski": "Wojtek Gierulski"}` |
@@ -94,15 +95,15 @@ python3 parse_export.py /tmp/sample --config /tmp/c.json --out /tmp/data.json --
 
 ## Co jest na dashboardzie
 
-- Licznik grupy, pasek do kolejnych 100 i 1000 z prognozą daty (tempo z 30 dni)
-- Dzisiaj / ten tydzień / średnia / rekord dnia oraz feed dzisiejszych piw
-- Ranking: tydzień, miesiąc, rok, all-time, ze zmianą miejsca vs poprzedni okres i poziomami (od „Piwnego żółtodzioba” do „Boga chmielu”)
-- Piwa w czasie (dziennie / tygodniowo + średnia krocząca), wyścig skumulowany, kalendarz roczny
-- Rozkład po godzinach i dniach tygodnia
-- Galeria sław: rekordy dnia/tygodnia, serie, najszybszy dublet, korony tygodnia, łowca jubileuszy, nocny marek, susza
-- 14 odznak (hat-trick, nocny marek, seria 5 dni, szczęśliwy numer, weekendowy wojownik…)
+- Licznik grupy z kuflem do następnej setki, paski do 100 i 1000 z prognozą, ile zostało do miliona i w którym roku go zrobimy
+- Ostatni dzień / ten tydzień / średnia (z wykresem 14 dni) / rekord dnia oraz feed ostatniego dnia
+- Ranking: tydzień, miesiąc, rok, all-time, ze zmianą miejsca vs poprzedni okres i poziomami (26, od „Pierwszego łyku” do „Boga chmielu”)
+- Piwa w czasie (dziennie / tygodniowo + średnia krocząca), rozkład po godzinach i dniach tygodnia
+- Galeria sław: rekordy, serie, godzina szczytu, najbardziej lubiane piwo… (kliknięcie otwiera zdjęcia)
+- Odznaki w stylu Steama: procent zawodników, którzy je mają, rzadkość, posiadacze; lista kolekcjonerów
 - Menel tygodnia, kamienie milowe (kto wbił każdą setkę), debiutanci
 
+Nowe odznaki i poziomy dodaje się w `site/js/rules.js` (lista `ACH`, `LEVELS` i warunki w `computeAchievements`).
 
 ## Struktura kodu
 
