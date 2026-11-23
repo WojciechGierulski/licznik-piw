@@ -5,12 +5,12 @@ import { D, beers, dateOfIdx, people, todayIdx, weeklyWinners } from "./model.js
 // [beers needed (all-time), name, icon]
 export const LEVELS = [
   [1, "Pierwszy łyk", "💧"], [3, "Piwny żółtodziób", "🐣"], [5, "Amator pianki", "🫧"],
-  [8, "Kapslowy kadet", "🧢"], [12, "Bywalec", "🪑"], [16, "Degustator", "🧐"], [20, "Stały klient", "🧾"],
+  [8, "Kapslowy kadet", "🧢"], [12, "Bywalec", "🪑"], [16, "Degustator", "👃"], [20, "Stały klient", "🧾"],
   [25, "Kumpel barmana", "🤝"], [30, "Piwny weteran", "🎖️"], [40, "Koneser chmielu", "🌿"], [50, "Mistrz kufla", "🍺"],
   [60, "Baron browaru", "🎩"], [75, "Hrabia chmielu", "🏰"], [90, "Książę pianki", "🤴"], [100, "Setnik", "💯"],
   [125, "Legenda baru", "📜"], [150, "Piwny mędrzec", "🧙"], [175, "Strażnik kranu", "🛡️"], [200, "Arcymistrz kufla", "🏆"],
-  [250, "Wielki Piwowar", "⚗️"], [300, "Król Browarów", "👑"], [400, "Cesarz Chmielu", "🏛️"], [500, "Półbóg pianki", "⚡"],
-  [600, "Spieniony Imperator", "🫅"], [750, "Arcykapłan chmielu", "🔮"], [1000, "Bóg chmielu", "🌟"],
+  [240, "Wielki Piwowar", "⚗️"], [280, "Król Browarów", "👑"], [320, "Cesarz Chmielu", "🏛️"], [360, "Półbóg pianki", "⚡"],
+  [400, "Spieniony Imperator", "🫅"], [450, "Arcykapłan chmielu", "🔮"], [500, "Bóg chmielu", "🌟"],
 ];
 export const level = (n) => {
   let k = 0;
@@ -44,7 +44,7 @@ export const ACH = [
   { id: "nice", ico: "😏", name: "Nice", desc: "Wbił numer kończący się na 69" },
   { id: "weed", ico: "🌿", name: "Ziółko", desc: "Wbił numer #420" },
   { id: "demon", ico: "😈", name: "Demon piwa", desc: "Wbił numer #666" },
-  { id: "telepathy", ico: "🧠", name: "Telepatia", desc: "Wrzucił ten sam numer co ktoś inny w tej samej minucie" },
+  { id: "splitg", ico: "🇮🇪", name: "Split the G", desc: "Przełamał G w Guinnessie (zatwierdzone przez grupę)" },
   { id: "dragon", ico: "🐉", name: "Wejście smoka", desc: "Pierwsze piwo w ciągu godziny od dołączenia do czatu" },
 ];
 
@@ -87,11 +87,7 @@ function computeAchievements(weekWinners) {
     if (b.hour >= 6 && b.hour < 11) add(b.p, "early");
     if (lastT[b.p] !== null && b.t - lastT[b.p] <= 900) add(b.p, "flash");
     if (lastDayOf[b.p] !== null && b.day - lastDayOf[b.p] - 1 >= 7) add(b.p, "comeback");  // 7 full days without a beer in between
-    if (b.k === "c") {
-      add(b.p, "clash");
-      const twin = beers.find((x) => x !== b && x.n === b.n && x.k !== "b" && Math.abs(x.t - b.t) <= 60);
-      if (twin) { add(b.p, "telepathy"); add(twin.p, "telepathy"); }
-    }
+    if (b.k === "c") add(b.p, "clash");
     const y = dateOfIdx(b.day).getFullYear();
     if (!seenYear.has(y)) { seenYear.add(y); if (beers.find((x) => x.timed) !== b) add(b.p, "newyear"); }
     lastT[b.p] = b.t; lastDayOf[b.p] = b.day;
@@ -116,6 +112,8 @@ function computeAchievements(weekWinners) {
   });
   for (const w of weekWinners) for (const p of w.winners) add(p, "king");
   for (const p of dayFirst.values()) add(p, "opener");
+  // badges the group confirmed by hand (config.json → manual_badges)
+  for (const [p, ids] of Object.entries(D.manual_badges || {})) for (const id of ids) add(+p, id);
   for (const [d, p] of dayLast) if (d < todayIdx) add(p, "closer");  // today is not over yet
   return res;
 }

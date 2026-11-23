@@ -55,6 +55,7 @@ DEFAULT_CONFIG = {
     "assign": {},           # gap numbers decided by hand: {"53": "Name"}
     "skip_messages": [],    # timestamp_ms of counter posts rejected by hand (VAR)
     "accept_messages": [],  # timestamp_ms of counter posts credited without a photo (VAR forgave)
+    "manual_badges": {},    # badges the group confirmed by hand: {"Name": ["splitg"]}
     "publish_photos": True, # copy the photos behind credited beers to site/media/
 }
 
@@ -475,6 +476,7 @@ def main():
     for b in beers:
         totals[b[1]] += b[3]
     people = [p for p, _ in totals.most_common()]
+    manual = {cfg["aliases"].get(k, k): v for k, v in cfg["manual_badges"].items()}
     first_seen = {}
     for m in msgs:  # sorted by time; count_beers already applied aliases
         first_seen.setdefault(m["who"], m["ts"])
@@ -491,6 +493,7 @@ def main():
         # [unix seconds, person index, counter number, beers credited, kind, reactions, photo files]
         "beers": [[t, idx[w], n, c, kind_code[k], r, f] for t, w, n, c, k, r, f in beers],
         "joined": [first_seen.get(w, 0) // 1000 for w in people],  # first message in the chat
+        "manual_badges": {idx[w]: ids for w, ids in manual.items() if w in idx},
         "messages_total": len(msgs),
     }
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)

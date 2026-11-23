@@ -76,6 +76,7 @@ Aktualizacja: `./update.sh` (patrz wyżej), który commituje `data.json` i robi 
 | `backfill` | | Piwa z poprzedniej konfy: `{"date": "2026-11-02", "beers": {"Imię": n}}` |
 | `assign` | | Ręczne przypisanie luki: `{"53": "Imię Nazwisko"}` |
 | `skip_messages` | | VAR: `timestamp_ms` postów do odrzucenia |
+| `manual_badges` | | Odznaki przyznane ręcznie, gdy grupa coś zatwierdzi: `{"Filip Szymański": ["splitg"]}` |
 | `exclude` | | Osoby do pominięcia |
 
 Rozpoznawane formaty: `33`, `33 🍺`, `19*` (korekta), `58,59`, `127, 128`, `131 132`, `136 i 137`,
