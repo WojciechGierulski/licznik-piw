@@ -36,7 +36,7 @@ export function createPlayer(scene) {
     return pivot;
   };
   const armL = limb(0.085, 0.55, suit, -0.42, 1.68), armR = limb(0.085, 0.55, suit, 0.42, 1.68);
-  for (const arm of [armL, armR]) { const hand = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), skin); hand.position.y = -0.78; arm.add(hand); }
+  const [handL] = [armL, armR].map((arm) => { const hand = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), skin); hand.position.y = -0.78; arm.add(hand); return hand; });
   const legL = limb(0.11, 0.62, pants, -0.15, 0.95), legR = limb(0.11, 0.62, pants, 0.15, 0.95);
   for (const leg of [legL, legR]) {
     const s = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.12, 0.32), shoe); s.position.set(0, -0.9, 0.06);
@@ -58,6 +58,8 @@ export function createPlayer(scene) {
   return {
     root,
     get heading() { return heading; },
+    hand(out) { return handL.getWorldPosition(out); },
+    face(pos) { heading = Math.atan2(pos.x - root.position.x, pos.z - root.position.z); },
     // where the puke comes out
     mouth(out) { return headG.getWorldPosition(out).add(new THREE.Vector3(Math.sin(heading), -0.05, Math.cos(heading)).multiplyScalar(0.25)); },
     reset(pos) {
@@ -69,7 +71,7 @@ export function createPlayer(scene) {
       // the more you drink, the more your body steers on its own
       drift += (Math.sin(t * 0.7) * 1.4 + Math.sin(t * 1.9 + 1) * 0.8 - drift) * dt * 0.8;
       heading += (move.turn * 2.4 + drift * d * 2.2) * dt;
-      const target = move.puking ? 0 : move.fwd * 6 * (1 + d * 0.3);
+      const target = move.puking || move.eating ? 0 : move.fwd * 6 * (1 + d * 0.3);
       speed += (target - speed) * Math.min(1, dt * (4 - d * 2.5));  // drunk legs react later
       forward.set(Math.sin(heading), 0, Math.cos(heading));
       side.set(forward.z, 0, -forward.x);
@@ -84,12 +86,16 @@ export function createPlayer(scene) {
       armL.rotation.x = -swing * 0.8 + Math.sin(t * 2) * 0.3 * d;
       armR.rotation.x = swing * 0.8 - 0.4;  // keeps the bottle up
       armL.rotation.z = -0.1 - d * 0.6 * (0.5 + 0.5 * Math.sin(t * 1.7));  // flailing for balance
+      if (move.eating) {  // kebab to the mouth, bite, chew
+        armL.rotation.x = -2.3 + Math.max(0, Math.sin(t * 7)) * 0.35;
+        armL.rotation.z = 0.35;
+      }
       body.rotation.z = Math.sin(t * 1.9) * 0.35 * d + lateral * 0.08;
       bend += ((move.puking ? 0.75 : 0) - bend) * Math.min(1, dt * 6);  // folds in half to puke
       body.rotation.x = Math.sin(t * 1.1) * 0.15 * d + speed * 0.012 + bend;
       body.position.y = Math.abs(Math.sin(stride)) * 0.05 * Math.min(1, Math.abs(speed) / 3);
       headG.rotation.z = Math.sin(t * 2.6) * 0.4 * d;
-      headG.rotation.x = Math.sin(t * 1.4) * 0.25 * d;
+      headG.rotation.x = Math.sin(t * 1.4) * 0.25 * d + (move.eating ? Math.max(0, Math.sin(t * 7)) * 0.25 : 0);
       return { speed, forward };
     },
     // dyntka: fall flat on your face; returns true when done

@@ -287,22 +287,42 @@ export function buildWorld(scene) {
   const kebabWall = std({ color: 0xd9cfb8 }), kebabRoof = std({ color: 0x8a1c1c });
   for (const [x, z, rot] of [[-8, 9, Math.PI], [60, -9, Math.PI], [-52, 52, Math.PI / 2]]) {  // the first one faces the start
     const k = new THREE.Group();
-    const box = new THREE.Mesh(new THREE.BoxGeometry(4, 2.8, 3), kebabWall); box.position.y = 1.4;
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.3, 3.8), kebabRoof); roof.position.set(0, 2.95, 0.3);
-    const counter = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.1, 0.5), kebabRoof); counter.position.set(0, 0.55, 1.75);
-    const hatch = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 1.1), new THREE.MeshStandardMaterial({ color: 0xffe2a0, emissive: 0xffc46b, emissiveIntensity: 2 }));
-    hatch.position.set(0, 1.75, 1.51);
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 0.95), new THREE.MeshStandardMaterial({ map: kebabSign, emissiveMap: kebabSign, emissive: 0xffffff, emissiveIntensity: 1.6 }));
+    // an open stall: back, sides, counter and a header, so you can see the guy inside
+    const part = (w, h, d, x, y, z, mat = kebabWall) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); return m; };
+    const shell = [
+      part(4, 2.8, 0.12, 0, 1.4, -1.44), part(0.12, 2.8, 3, -1.94, 1.4, 0), part(0.12, 2.8, 3, 1.94, 1.4, 0),
+      part(4, 1.1, 0.12, 0, 0.55, 1.44), part(4.2, 0.08, 0.6, 0, 1.12, 1.42, kebabRoof), part(4, 0.55, 0.12, 0, 2.52, 1.44),
+    ];
+    const roof = part(4.6, 0.3, 3.8, 0, 2.95, 0.3, kebabRoof);
+    const lampIn = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.25), new THREE.MeshStandardMaterial({ color: 0xfff0d0, emissive: 0xffd79a, emissiveIntensity: 0.9 }));
+    lampIn.position.set(0, 2.2, 0.2); lampIn.rotation.x = Math.PI / 2;
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 0.95), new THREE.MeshStandardMaterial({ map: kebabSign, emissiveMap: kebabSign, emissive: 0xffffff, emissiveIntensity: 0.8 }));
     sign.position.set(0, 3.55, 1.6);
-    const spit = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.26, 0.8, 10), std({ color: 0x9a5a2a, roughness: 0.6 })); spit.position.set(-1, 1.75, 1.3);
-    k.add(box, roof, counter, hatch, sign, spit);
+    const spit = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.26, 0.8, 10), std({ color: 0x9a5a2a, roughness: 0.6 })); spit.position.set(-1.1, 1.6, 0.3);
+    // the kebab guy behind the counter: apron, cap, moustache, knife
+    const vendor = new THREE.Group(); vendor.position.set(0.5, 0, 0.6);
+    const skinV = std({ color: 0xc99572, roughness: 0.6 }), apron = std({ color: 0xf2efe6 }), darkV = std({ color: 0x1c1712 });
+    const torsoV = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 0.5, 6, 12), apron); torsoV.position.y = 1.4; torsoV.scale.z = 0.7;
+    const headV = new THREE.Mesh(new THREE.SphereGeometry(0.22, 18, 14), skinV); headV.position.y = 2.05;
+    const capV = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.16, 16), apron); capV.position.y = 2.25;
+    const stache = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.05, 0.05), darkV); stache.position.set(0, 1.99, 0.21);
+    const eyes = [-0.07, 0.07].map((x) => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), darkV); e.position.set(x, 2.09, 0.2); return e; });
+    const armV = new THREE.Group(); armV.position.set(-0.38, 1.7, 0);  // the serving arm
+    const armMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.5, 4, 8), apron); armMesh.position.y = -0.33;
+    const handV = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), skinV); handV.position.y = -0.68;
+    armV.add(armMesh, handV);
+    const knifeArm = new THREE.Group(); knifeArm.position.set(0.38, 1.7, 0);
+    const knifeArmMesh = armMesh.clone(); const knife = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.3, 0.02), std({ color: 0xcfd2d6, metalness: 0.8, roughness: 0.3 }));
+    knife.position.y = -0.85; knifeArm.add(knifeArmMesh, knife);
+    vendor.add(torsoV, headV, capV, stache, ...eyes, armV, knifeArm);
+    k.add(...shell, roof, lampIn, sign, spit, vendor);
     k.traverse((m) => { if (m.isMesh) m.castShadow = true; });
     k.position.set(x, 0, z); k.rotation.y = rot;
     scene.add(k);
     const hw = Math.abs(Math.cos(rot)) * 2.1 + Math.abs(Math.sin(rot)) * 1.7, hd = Math.abs(Math.sin(rot)) * 2.1 + Math.abs(Math.cos(rot)) * 1.7;
     colliders.push({ minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd });
     const front = new THREE.Vector3(0, 0, 2.8).applyAxisAngle(new THREE.Vector3(0, 1, 0), rot).add(k.position);
-    kebabs.push({ group: k, front, cooldown: 0 });
+    kebabs.push({ group: k, front, cooldown: 0, serving: 0, armV, knifeArm, handV, vendor });
   }
 
   const blocked = (x, z, margin) => colliders.some((c) => x > c.minX - margin && x < c.maxX + margin && z > c.minZ - margin && z < c.maxZ + margin);
@@ -316,7 +336,16 @@ export function buildWorld(scene) {
         t.fall = Math.min(1, t.fall + dt * 1.8);
         t.group.rotation.set(Math.cos(t.dir) * t.fall * 1.45, 0, -Math.sin(t.dir) * t.fall * 1.45);
       }
-      for (const k of kebabs) k.cooldown = Math.max(0, k.cooldown - dt);
+      for (const k of kebabs) {
+        k.cooldown = Math.max(0, k.cooldown - dt);
+        k.serving = Math.max(0, k.serving - dt);
+        const t = performance.now() / 1000;
+        // serving: the arm reaches over the counter; otherwise he keeps slicing meat off the spit
+        const reach = k.serving > 0 ? Math.min(1, (1.2 - k.serving) * 4, k.serving * 3) : 0;
+        k.armV.rotation.x = -reach * 1.5;
+        k.knifeArm.rotation.x = -0.6 + Math.sin(t * 6) * 0.35 * (1 - reach);
+        k.vendor.position.y = Math.abs(Math.sin(t * 2)) * 0.03;
+      }
       nearest.length = 0;
       for (const l of lamps) nearest.push([l.userData.spot.distanceToSquared(pos), l]);
       nearest.sort((a, b) => a[0] - b[0]);

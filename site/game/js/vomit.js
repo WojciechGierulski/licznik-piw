@@ -3,8 +3,9 @@ import * as THREE from "three";
 
 const DROPS = 90, PUDDLES = 40;
 
-export function createVomit(scene) {
-  const dropMat = new THREE.MeshStandardMaterial({ color: 0x9bbf2a, emissive: 0x3d5a00, roughness: 0.3 });
+// the same drops also work as garlic sauce (white) dripping off a kebab
+export function createVomit(scene, color = 0x9bbf2a, glow = 0x3d5a00) {
+  const dropMat = new THREE.MeshStandardMaterial({ color, emissive: glow, roughness: 0.3 });
   const drops = Array.from({ length: DROPS }, () => {
     const m = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 5), dropMat);
     m.visible = false; scene.add(m);

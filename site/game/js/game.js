@@ -13,30 +13,38 @@ const GOAL = 10;          // ‰ for the win
 const DECAY = 0.006;      // ‰ the body burns per second, so you can't stop drinking
 const DROP_EVERY = 4;     // seconds between beers falling from the sky near you
 const STAGES = [
-  [1, "Rozluźnienie. Wszystko pod kontrolą."],
-  [2, "Świat się buja. To nie świat, kurwa, to ty."],
+  [2, "Świat się buja. To nie świat, to ty."],
   [3, "Widzisz dwa piwa. Wypij oba."],
   [4, "Kolega pisze „jeszcze jedno”. Słuchasz kolegi."],
-  [5, "Nogi mają własne plany. Głowa też."],
-  [6, "Latarnie zaczynają tańczyć. Dołącz, chuju."],
   [7, "Mówisz po niemiecku. Nie znasz niemieckiego."],
-  [8, "Film urywa się coraz częściej."],
   [9, "Widzisz światełko w tunelu. To sklep 24h. Albo Bóg."],
 ];
 const LINES = {
-  enter: ["Prawo jazdy? Chuj z prawem jazdy.", "Kluczyki w stacyjce. Jak zawsze na tym osiedlu.", "Lusterko pokazuje dwóch ciebie. Obaj prowadzicie.", "Pas bezpieczeństwa jest dla frajerów."],
-  exit: ["Zaparkowane. Mniej więcej.", "Wysiadasz. Auto i tak nie było twoje.", "Parkowanie na trawniku. Klasyk."],
-  crash: ["JEBUT!", "Kurwa, słup.", "Ubezpieczyciel właśnie dostał zawału.", "To nie był krawężnik. To był Mirek.", "Poduszka powietrzna pachnie Perełką."],
-  vomit: ["BLEEEEEEH.", "Oddajesz Perełkę naturze.", "Pawik jak z obrazka. Monet by się zesrał.", "Wyszło nosem. Nawet frytki.", "Pizza z wczoraj pozdrawia."],
-  vomitCar: ["Porzygałeś deskę rozdzielczą. Właściciel będzie zachwycony.", "Rzygasz na przednią szybę. Wycieraczki nie pomogą."],
-  blackout: ["*urwał się film*", "*film się urwał, dubbing został*", "*czarna dziura w pamięci*"],
-  tree: ["Drzewo: 0. Ty: 1.", "Ekolodzy już jadą.", "Kurwa, brzoza. Była.", "Wycinka bez pozwolenia. Grzywna w drodze.", "Dzięcioł stracił mieszkanie."],
-  kebab: ["Kebab z baraniny. Baranina z kota. Smakuje.", "Sos czosnkowy wchłonął promile i twoją godność.", "Pan Ali dorzucił frytki. Wątroba płacze ze szczęścia.", "Ostry? Kurwa, będzie bolało dwa razy.", "Kebab trzeźwi. Na chwilę. Jak terapia."],
+  enter: ["Prawo jazdy? A komu to potrzebne.", "Kluczyki w stacyjce. Jak zawsze na tym osiedlu.", "Lusterko pokazuje dwóch ciebie. Obaj prowadzicie."],
+  exit: ["Wysiadasz. Auto i tak nie było twoje.", "Parkowanie na trawniku. Klasyk."],
+  crash: ["JEBUT!", "To nie był krawężnik. To był Mirek.", "Ubezpieczyciel właśnie dostał zawału."],
+  vomit: ["Oddajesz Perełkę naturze.", "Pawik jak z obrazka. Monet by się zesrał.", "Wyszło nosem. Nawet frytki.", "Pizza z wczoraj pozdrawia."],
+  vomitCar: ["Porzygałeś deskę rozdzielczą. Właściciel będzie zachwycony."],
+  blackout: ["*urwał się film*", "*film się urwał, dubbing został*"],
+  tree: ["Drzewo: 0. Ty: 1.", "Ekolodzy już jadą.", "Dzięcioł stracił mieszkanie."],
+  kebab: ["Kebab z baraniny. Baranina z kota. Smakuje.", "Sos czosnkowy wchłonął promile i twoją godność."],
 };
 const $ = (id) => document.getElementById(id);
 const store = { get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch (e) { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } } };
 const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
+
+// a kebab in a wrap: pita, meat, lettuce, tomato
+function kebabMesh() {
+  const g = new THREE.Group();
+  const m = (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8 });
+  const wrap = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.34, 12, 1, true), m(0xe7c98f)); wrap.rotation.x = Math.PI; wrap.material.side = THREE.DoubleSide;
+  const meat = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), m(0x7a3e1d)); meat.position.y = 0.14; meat.scale.y = 0.6;
+  const salad = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), m(0x6fb33a)); salad.position.set(0.04, 0.18, 0.02);
+  const tomato = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), m(0xd23a24)); tomato.position.set(-0.04, 0.18, -0.02);
+  g.add(wrap, meat, salad, tomato);
+  return g;
+}
 
 function graveTexture(lines) {
   const c = document.createElement("canvas"); c.width = 256; c.height = 320;
@@ -73,6 +81,7 @@ export function startGame(autoplay = false) {
   const input = createInput(wrap, $("gJoy"), $("gUse"));
   const driving = createDriving(world);
   const vomit = createVomit(scene);
+  const sauce = createVomit(scene, 0xf4f1e6, 0x2a2a2a);  // garlic sauce dripping off the kebab
 
   const resize = () => {
     const w = wrap.clientWidth, h = wrap.clientHeight;
@@ -82,8 +91,39 @@ export function startGame(autoplay = false) {
   new ResizeObserver(resize).observe(wrap);
   resize();
 
-  let state = "menu", promil = 0, drunk = 0, count = 0, elapsed = 0, stage = 0, grave = null, orbit = 0, toastTimer = 0, puking = 0, fallDone = 0, dropIn = DROP_EVERY;
-  const clock = new THREE.Clock(), mouth = new THREE.Vector3(), face = new THREE.Vector3();
+  let state = "menu", promil = 0, drunk = 0, count = 0, elapsed = 0, stage = 0, grave = null, orbit = 0, toastTimer = 0, puking = 0, fallDone = 0, dropIn = DROP_EVERY, eating = null;
+  const clock = new THREE.Clock(), mouth = new THREE.Vector3(), face = new THREE.Vector3(), handPos = new THREE.Vector3();
+  const KEBAB_TIME = 2.9, BITES = [1.3, 1.9, 2.5];
+
+  function startEating(k) {
+    k.cooldown = 30; k.serving = 1.2;
+    eating = { t: 0, k, mesh: kebabMesh(), bite: 0, from: new THREE.Vector3() };
+    scene.add(eating.mesh);
+    player.face(k.group.position);
+    toast(`🥙 ${pick(LINES.kebab)}`);
+  }
+  function stopEating() { if (eating) { scene.remove(eating.mesh); eating = null; } }
+  // the guy hands it over, it flies to your hand, three bites with sauce, then it sobers you up
+  function eat(dt) {
+    const e = eating;
+    e.t += dt;
+    player.hand(handPos);
+    if (e.t < 0.9) {
+      e.k.handV.getWorldPosition(e.from);
+      e.mesh.position.lerpVectors(e.from, handPos, Math.max(0, Math.min(1, (e.t - 0.35) / 0.55)));
+    } else e.mesh.position.copy(handPos).add(face.set(0, 0.12, 0));
+    e.mesh.rotation.y += dt * 2;
+    if (e.bite < BITES.length && e.t >= BITES[e.bite]) {
+      e.bite++;
+      e.mesh.scale.multiplyScalar(0.72);
+      for (let i = 0; i < 3; i++) sauce.spray(handPos, face.set(0, -1, 0));
+    }
+    if (e.t >= KEBAB_TIME) {
+      stopEating();
+      promil = Math.max(0, promil - 1.2);
+      toast("−1,2 ‰. Wątroba dziękuje, żołądek nie.");
+    }
+  }
 
   // messages wait in a queue, so each one stays long enough to read
   const queue = [];
@@ -91,7 +131,7 @@ export function startGame(autoplay = false) {
     const el = $("gToast"), next = queue.shift();
     if (!next) { el.className = "g-toast"; toastTimer = 0; return; }
     el.textContent = next.text; el.className = `g-toast show ${next.big ? "big" : ""}`;
-    toastTimer = setTimeout(showNext, (next.big ? 3800 : 3000) + next.text.length * 20);
+    toastTimer = setTimeout(showNext, (next.big ? 4500 : 3800) + next.text.length * 25);
   };
   const toast = (text, big = false) => {
     if (queue.length >= 3) queue.shift();  // don't fall minutes behind
@@ -118,6 +158,7 @@ export function startGame(autoplay = false) {
     drunk = promil / GOAL; count = 0; elapsed = 0; orbit = 0; puking = 0; fallDone = 0;
     stage = STAGES.filter(([p]) => promil >= p).length;
     if (grave) { scene.remove(grave); grave = null; }
+    stopEating();
     player.reset(new THREE.Vector3(0, 0, 0));
     player.root.visible = true;
     beers.reset(player.root.position); fx.reset(); vomit.clear();
@@ -131,7 +172,7 @@ export function startGame(autoplay = false) {
   function drink(kind) {
     count += kind.count || 1;
     promil = Math.max(0, promil + kind.promil);
-    toast(pick(kind.lines));
+    if (Math.random() < 0.35) toast(pick(kind.lines));  // a comment now and then, not after every beer
     while (stage < STAGES.length && promil >= STAGES[stage][0]) { toast(STAGES[stage][1], true); stage++; }
   }
 
@@ -150,6 +191,7 @@ export function startGame(autoplay = false) {
   }
 
   function die() {
+    stopEating();
     if (driving.car) { player.root.position.copy(driving.exit()); player.root.visible = true; }
     state = "dying"; input.active = false;
     $("gHint").hidden = true; $("gUse").hidden = true;
@@ -184,6 +226,7 @@ export function startGame(autoplay = false) {
     promil = Math.max(0, promil - DECAY * dt);
     drunk = Math.min(1, promil / GOAL);
     const move = input.read();
+    if (eating) { move.fwd = 0; move.turn = 0; move.use = false; move.eating = eating.t > 0.9; }
     if (move.use) toggleCar();
     move.puking = puking > 0;
     puking -= dt;
@@ -201,17 +244,15 @@ export function startGame(autoplay = false) {
     } else {
       player.update(dt, move, drunk, t);
       world.resolve(player.root.position, 0.45);
-      const kebab = world.kebabAt(player.root.position);
-      if (kebab) {
-        kebab.cooldown = 30;
-        promil = Math.max(0, promil - 1.2);
-        toast(`🥙 ${pick(LINES.kebab)} (−1,2 ‰)`);
-      }
+      const kebab = !eating && world.kebabAt(player.root.position);
+      if (kebab) startEating(kebab);
+      if (eating) eat(dt);
     }
     world.update(follow.root.position, dt);
     if ((dropIn -= dt) <= 0) { dropIn = DROP_EVERY; beers.drop(follow.root.position); }
     beers.update(dt, t, follow.root.position, reach, drink);
 
+    if (eating) { follow = { root: player.root, heading: player.heading + 1.9 }; dist = 3.8; }  // close side view of the meal
     const ev = fx.update(dt, t, drunk, follow, dist);
     if (ev === "blackout") {
       toast(pick(LINES.blackout));
@@ -223,7 +264,7 @@ export function startGame(autoplay = false) {
       if (!driving.car) vomit.puddle(player.mouth(mouth).add(face.set(Math.sin(player.heading), 0, Math.cos(player.heading)).multiplyScalar(0.8)));
     }
     if (puking > 0 && !driving.car) vomit.spray(player.mouth(mouth), face.set(Math.sin(player.heading), -0.6, Math.cos(player.heading)).normalize());
-    vomit.update(dt);
+    vomit.update(dt); sauce.update(dt);
 
     world.lamps.forEach((l, i) => { l.rotation.z = Math.sin(t * 2 + i) * 0.35 * drunk * drunk; l.position.y = Math.abs(Math.sin(t * 3 + i)) * 0.6 * drunk * drunk; });
     const car = !driving.car && nearestCar();

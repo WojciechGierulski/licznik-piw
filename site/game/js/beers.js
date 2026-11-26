@@ -2,33 +2,24 @@
 import * as THREE from "three";
 
 export const KINDS = [
-  { id: "perelka", name: "Perełka", color: 0xf2c94c, promil: 0.4, weight: 32, lines: [
-    "Perełka wchodzi jak w masło. Kurwa, jak w masło.",
-    "Smakuje jak poniedziałek w urzędzie. Pijesz dalej.",
+  { id: "perelka", name: "Perełka", color: 0xf2c94c, promil: 0.32, weight: 32, lines: [
     "Wątroba właśnie napisała do ciebie „spierdalaj”.",
     "„Jeszcze jedno i idziemy”. Kłamco.",
-    "Gdzieś płacze twoja matka. Tak trzymaj.",
     "Ciepła jak dupa ratlerka. Wchodzi.",
-    "Piwo z ławki. Ławka też coś z tego ma.",
+    "Smakuje jak poniedziałek w urzędzie. Pijesz dalej.",
   ] },
-  { id: "mioduwka", name: "Mioduwka", color: 0xe08a1e, promil: 0.55, weight: 22, lines: [
-    "Miodowe? Pszczoły by cię pozwały.",
-    "Słodkie jak twoje kłamstwa do szefa.",
+  { id: "mioduwka", name: "Mioduwka", color: 0xe08a1e, promil: 0.45, weight: 22, lines: [
     "Kubuś Puchatek na odwyku też to pił.",
-    "Smak dzieciństwa. Spierdolonego, ale dzieciństwa.",
-    "Jedna mioduwka dziennie i lekarz sam się zapije.",
+    "Słodkie jak twoje kłamstwa do szefa.",
+    "Miodowe. Pszczoły złożyły pozew.",
   ] },
-  { id: "ipa", name: "Kraft IPA", color: 0x7ed957, promil: 0.75, weight: 12, lines: [
-    "38 zł za smak choinki. Jesteś debilem i to szanujemy.",
+  { id: "ipa", name: "Kraft IPA", color: 0x7ed957, promil: 0.6, weight: 12, lines: [
+    "38 zł za smak choinki. Szanujemy.",
     "Notki grejpfruta, sosny i kredytu we frankach.",
-    "Brodaty hipster w okolicy właśnie poczuł ukłucie dumy.",
-    "Kurwa, gorzkie jak twoja była.",
-    "Craftowe. Czyli drogie i chuj wie co w środku.",
+    "Gorzkie jak twoja była.",
   ] },
-  { id: "promka", name: "Promka 4+2", color: 0x4aa3ff, promil: 1.7, count: 6, weight: 8, lines: [
+  { id: "promka", name: "Promka 4+2", color: 0x4aa3ff, promil: 1.4, count: 6, weight: 8, lines: [
     "Sześciopak w 4 sekundy. Kasjerka zadzwoniła po księdza.",
-    "4+2 gratis. Wątroba 0, promocja 6.",
-    "Ekonomia, kurwa. Adam Smith by się wzruszył.",
     "Napiłeś się za cały blok. Blok bije brawo.",
   ] },
 ];
