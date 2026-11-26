@@ -103,6 +103,15 @@ export function startGame(autoplay = false) {
     player.face(k.group.position);
     toast(`🥙 ${pick(LINES.kebab)}`);
   }
+  // a fixed shot from the side of the counter: the guy, the hand-over and you, all in frame
+  const shot = { pos: new THREE.Vector3(), look: new THREE.Vector3() }, away = new THREE.Vector3();
+  function kebabShot() {
+    const p = player.root.position, k = eating.k.group.position;
+    away.subVectors(p, k).setY(0).normalize();
+    shot.pos.copy(p).addScaledVector(away, 1.8).add(face.set(away.z, 0, -away.x).multiplyScalar(3.2)).setY(2.1);
+    shot.look.lerpVectors(p, k, 0.45).setY(1.6);
+    return shot;
+  }
   function stopEating() { if (eating) { scene.remove(eating.mesh); eating = null; } }
   // the guy hands it over, it flies to your hand, three bites with sauce, then it sobers you up
   function eat(dt) {
@@ -260,8 +269,7 @@ export function startGame(autoplay = false) {
     if ((dropIn -= dt) <= 0) { dropIn = DROP_EVERY; beers.drop(follow.root.position); }
     beers.update(dt, t, follow.root.position, reach, drink);
 
-    if (eating) { follow = { root: player.root, heading: player.heading + 1.9 }; dist = 3.8; }  // close side view of the meal
-    const ev = fx.update(dt, t, drunk, follow, dist);
+    const ev = fx.update(dt, t, drunk, follow, dist, eating && kebabShot());
     if (ev === "blackout") {
       toast(pick(LINES.blackout));
       if (!driving.car) player.root.position.add(new THREE.Vector3((Math.random() - 0.5) * 8, 0, (Math.random() - 0.5) * 8));

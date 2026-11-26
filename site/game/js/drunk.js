@@ -48,8 +48,9 @@ export function createDrunkFx(renderer, scene, camera) {
     get blackedOut() { return blackoutLeft > 0; },
     resize(w, h) { composer.setSize(w, h); },
     // returns an event name when something random happens ("blackout", "vomit")
-    // follow: {root: {position}, heading}; dist: how far behind the camera sits
-    update(dt, t, d, player, dist = 6.5) {
+    // follow: {root: {position}, heading}; dist: how far behind the camera sits;
+    // shot: {pos, look} for a fixed cinematic camera (eating a kebab), with the drunk effects toned down
+    update(dt, t, d, player, dist = 6.5, shot = null) {
       let event = null;
       // random events get more frequent the drunker you are
       blackoutCooldown -= dt;
@@ -60,17 +61,26 @@ export function createDrunkFx(renderer, scene, camera) {
       blackout += ((blackoutLeft > 0 ? 1 : 0) - blackout) * Math.min(1, dt * 5);
       green += ((greenLeft > 0 ? 0.8 : 0) - green) * Math.min(1, dt * 4);
 
+      const seen = shot ? d * 0.4 : d;  // you should be able to see your kebab
       const u = pass.uniforms;
       u.uTime.value = t;
-      u.uWave.value = Math.pow(d, 1.1) * 1.6;
-      u.uDouble.value = Math.max(0, d - 0.12) * 0.035;
-      u.uSplit.value = d * d * 0.012;
+      u.uWave.value = Math.pow(seen, 1.1) * 1.6;
+      u.uDouble.value = Math.max(0, seen - 0.12) * 0.035;
+      u.uSplit.value = seen * seen * 0.012;
       u.uVignette.value = 0.25 + d * 0.65;
       u.uBlack.value = blackout;
       u.uGreen.value = green;
       bloom.strength = 0.8 + d * 1.4;  // drunk eyes: every light becomes a halo
       bloom.radius = 0.55 + d * 0.35;
 
+      if (shot) {
+        camera.position.lerp(shot.pos, Math.min(1, dt * 3));
+        camera.lookAt(shot.look);
+        camera.rotateZ(Math.sin(t * 0.8) * 0.1 * seen);
+        camera.fov += (55 - camera.fov) * Math.min(1, dt * 3);
+        camera.updateProjectionMatrix();
+        return event;
+      }
       // third-person camera that follows the player and sways more with every beer
       const h = player.heading;
       camPos.set(player.root.position.x - Math.sin(h) * dist, 3.4 + dist * 0.15 + Math.sin(t * 0.9) * 0.6 * d, player.root.position.z - Math.cos(h) * dist);
