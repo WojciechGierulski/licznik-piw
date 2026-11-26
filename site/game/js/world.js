@@ -92,7 +92,7 @@ export function buildWorld(scene) {
 
   // ground: asphalt everywhere, grass squares with curbs between the streets
   const asphalt = canvasTex(256, 256, (g, w, h) => noise(g, w, h, "#2a2c30", 0.16), [70, 70]);
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(HALF * 2 + 60, HALF * 2 + 60), std({ map: asphalt, roughness: 0.95 }));
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(HALF * 2 + 60, HALF * 2 + 60), std({ map: asphalt, roughness: 0.62, metalness: 0.15 }));  // damp
   ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true;
   scene.add(ground);
   const grassTex = canvasTex(256, 256, (g, w, h) => noise(g, w, h, "#24391f", 0.22, 14000), [5, 5]);
@@ -166,6 +166,7 @@ export function buildWorld(scene) {
     r.addColorStop(0, "rgba(255,200,120,0.32)"); r.addColorStop(1, "rgba(255,200,120,0)");
     g.fillStyle = r; g.fillRect(0, 0, 128, 128);
   });
+  const coneMat = new THREE.MeshBasicMaterial({ color: 0xffc070, transparent: true, opacity: 0.05, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
   const poolMat = new THREE.MeshBasicMaterial({ map: poolTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
   for (let s = -3; s <= 3; s++) for (let k = -3; k <= 3; k++) {
     for (const [x, z, rot] of [[s * GRID + GRID / 2 - 1.6, k * GRID + 6, 0], [k * GRID + 6, s * GRID + GRID / 2 - 1.6, Math.PI / 2]]) {
@@ -173,7 +174,8 @@ export function buildWorld(scene) {
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.11, 6, 8), poleMat); pole.position.y = 3; pole.castShadow = true;
       const arm = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.08), poleMat); arm.position.set(0.55, 5.95, 0);
       const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.14, 0.3), headMat); head.position.set(1.05, 5.85, 0);
-      lamp.add(pole, arm, head);
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(2.6, 5.6, 20, 1, true), coneMat); cone.position.set(1.05, 2.95, 0);
+      lamp.add(pole, arm, head, cone);
       lamp.position.set(x, 0, z); lamp.rotation.y = rot;
       scene.add(lamp);
       const spot = new THREE.Vector3(1.05, 0, 0).applyEuler(lamp.rotation).add(lamp.position);
@@ -191,27 +193,64 @@ export function buildWorld(scene) {
     return l;
   });
 
-  // parked cars along the streets
-  const carColors = [0x8a1c1c, 0x1c3f8a, 0xb7b7b2, 0x222222, 0x2f6b3a, 0x6b5a2f];
-  const glass = std({ color: 0x0c1218, roughness: 0.15, metalness: 0.6 }), tyre = std({ color: 0x111111 });
+  // parked cars along the streets; any of them can be stolen
+  const carColors = [0x8a1c1c, 0x1c3f8a, 0xb7b7b2, 0x222222, 0x2f6b3a, 0x6b5a2f, 0xd9d4c7];
+  const glass = std({ color: 0x0c1218, roughness: 0.08, metalness: 0.8 }), tyre = std({ color: 0x111111 }), chrome = std({ color: 0x9a9a9a, roughness: 0.25, metalness: 0.9 });
+  const headlightMat = new THREE.MeshStandardMaterial({ color: 0xfff6d8, emissive: 0xfff0c0, emissiveIntensity: 1.2 });
+  const tailMat = new THREE.MeshStandardMaterial({ color: 0x5a0000, emissive: 0xff1a1a, emissiveIntensity: 0.8 });
+  const cars = [];
+  const parkCar = (x, z, alongX, color) => {
+    const car = new THREE.Group();
+    const paint = std({ color, roughness: 0.3, metalness: 0.55 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.6, 4.3), paint); body.position.y = 0.6;
+    const hood = new THREE.Mesh(new THREE.BoxGeometry(1.76, 0.18, 1.3), paint); hood.position.set(0, 0.98, 1.4); hood.rotation.x = -0.12;
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.62, 2.1), glass); cabin.position.set(0, 1.21, -0.25);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(1.64, 0.08, 1.8), paint); roof.position.set(0, 1.55, -0.3);
+    const bumperF = new THREE.Mesh(new THREE.BoxGeometry(1.84, 0.2, 0.15), chrome); bumperF.position.set(0, 0.4, 2.17);
+    const bumperB = bumperF.clone(); bumperB.position.z = -2.17;
+    car.add(body, hood, cabin, roof, bumperF, bumperB);
+    for (const lx of [-0.62, 0.62]) {
+      const hl = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.16, 0.05), headlightMat); hl.position.set(lx, 0.72, 2.16);
+      const tl = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.14, 0.05), tailMat); tl.position.set(lx, 0.72, -2.16);
+      car.add(hl, tl);
+    }
+    for (const [wx, wz] of [[-0.85, 1.35], [0.85, 1.35], [-0.85, -1.35], [0.85, -1.35]]) {
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.26, 16), tyre);
+      w.rotation.z = Math.PI / 2; w.position.set(wx, 0.36, wz); car.add(w);
+    }
+    car.traverse((m) => { m.castShadow = true; });
+    car.position.set(x, 0, z); car.rotation.y = alongX ? Math.PI / 2 : 0;
+    scene.add(car);
+    const entry = { group: car, collider: null };
+    cars.push(entry);
+    park(entry);
+  };
+  // a parked car blocks a box that fits its current rotation
+  const park = (entry) => {
+    const { x, z } = entry.group.position, a = entry.group.rotation.y;
+    const hw = Math.abs(Math.cos(a)) * 1 + Math.abs(Math.sin(a)) * 2.2, hd = Math.abs(Math.sin(a)) * 1 + Math.abs(Math.cos(a)) * 2.2;
+    entry.collider = { minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd };
+    colliders.push(entry.collider);
+  };
+  parkCar(GRID / 2 + 2.3, 4, false, 0x8a1c1c);  // one right next to the start, so nobody misses it
   for (let i = 0; i < 24; i++) {
     const s = Math.floor(Math.random() * 7) - 3, along = (Math.random() - 0.5) * HALF * 1.8, alongX = Math.random() < 0.5;
     const axis = s * GRID + GRID / 2 + 2.3;
-    const car = new THREE.Group();
-    const paint = std({ color: carColors[i % carColors.length], roughness: 0.35, metalness: 0.5 });
-    const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.7, 4.2), paint); body.position.y = 0.65;
-    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 2.2), glass); cabin.position.set(0, 1.25, -0.2);
-    car.add(body, cabin);
-    for (const [wx, wz] of [[-0.85, 1.3], [0.85, 1.3], [-0.85, -1.3], [0.85, -1.3]]) {
-      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.25, 14), tyre);
-      w.rotation.z = Math.PI / 2; w.position.set(wx, 0.35, wz); car.add(w);
-    }
-    car.traverse((m) => { m.castShadow = true; });
     const [x, z] = alongX ? [along, axis] : [axis, along];
-    car.position.set(x, 0, z); car.rotation.y = alongX ? Math.PI / 2 : 0;
-    scene.add(car);
-    const [hw, hd] = alongX ? [2.2, 1] : [1, 2.2];
-    colliders.push({ minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd });
+    parkCar(x, z, alongX, carColors[i % carColors.length]);
+  }
+
+  // wet asphalt: a few puddles that mirror the lamps
+  const puddle = new THREE.MeshStandardMaterial({ color: 0x0b0d12, roughness: 0.04, metalness: 0.9 });
+  for (let i = 0; i < 50; i++) {
+    const s = Math.floor(Math.random() * 7) - 3, along = (Math.random() - 0.5) * HALF * 1.9;
+    const axis = s * GRID + GRID / 2 + (Math.random() - 0.5) * 4;
+    const p = new THREE.Mesh(new THREE.CircleGeometry(0.8 + Math.random() * 1.6, 20), puddle);
+    p.rotation.x = -Math.PI / 2; p.scale.y = 0.6 + Math.random() * 0.4;
+    const [x, z] = Math.random() < 0.5 ? [along, axis] : [axis, along];
+    p.position.set(x, 0.012, z);
+    p.receiveShadow = true;
+    scene.add(p);
   }
 
   // benches and trees
@@ -249,18 +288,26 @@ export function buildWorld(scene) {
       moon.target.position.set(pos.x, 0, pos.z);
       moon.position.set(pos.x - 30, 50, pos.z + 25);
     },
-    // push a circle (the player) out of every box it overlaps, and keep it inside the estate
+    cars,
+    // a stolen car stops being an obstacle; a parked one becomes one again where you left it
+    unpark(entry) { colliders.splice(colliders.indexOf(entry.collider), 1); entry.collider = null; },
+    park,
+    // push a circle out of every box it overlaps and keep it inside the estate; true when something was hit
     resolve(pos, r) {
+      let hit = false;
       for (const c of colliders) {
         const cx = Math.max(c.minX, Math.min(pos.x, c.maxX)), cz = Math.max(c.minZ, Math.min(pos.z, c.maxZ));
         const dx = pos.x - cx, dz = pos.z - cz, d2 = dx * dx + dz * dz;
         if (d2 < r * r) {
           const d = Math.sqrt(d2) || 0.0001;
           pos.x = cx + (dx / d) * r; pos.z = cz + (dz / d) * r;
+          hit = true;
         }
       }
+      if (Math.abs(pos.x) > HALF || Math.abs(pos.z) > HALF) hit = true;
       pos.x = Math.max(-HALF, Math.min(HALF, pos.x));
       pos.z = Math.max(-HALF, Math.min(HALF, pos.z));
+      return hit;
     },
     randomSpot(margin = 1.2) {
       for (;;) {

@@ -52,23 +52,24 @@ export function createPlayer(scene) {
   root.traverse((m) => { if (m.isMesh) m.castShadow = true; });
   scene.add(root);
 
-  let heading = 0, speed = 0, stride = 0, lateral = 0, drift = 0, fall = 0;
+  let heading = 0, speed = 0, stride = 0, lateral = 0, drift = 0, fall = 0, bend = 0;
   const forward = new THREE.Vector3(), side = new THREE.Vector3();
 
   return {
     root,
     get heading() { return heading; },
+    // where the puke comes out
+    mouth(out) { return headG.getWorldPosition(out).add(new THREE.Vector3(Math.sin(heading), -0.05, Math.cos(heading)).multiplyScalar(0.25)); },
     reset(pos) {
-      root.position.copy(pos); heading = 0; speed = 0; fall = 0; drift = 0; lateral = 0;
+      root.position.copy(pos); heading = 0; speed = 0; fall = 0; drift = 0; lateral = 0; bend = 0;
       root.rotation.set(0, 0, 0); body.rotation.set(0, 0, 0);
     },
     // move: {fwd: -1..1, turn: -1..1}; d: drunkenness 0..1 (10 ‰ = 1), grows the stagger continuously
     update(dt, move, d, t) {
-      const turnSign = move.inverted ? -1 : 1;
       // the more you drink, the more your body steers on its own
       drift += (Math.sin(t * 0.7) * 1.4 + Math.sin(t * 1.9 + 1) * 0.8 - drift) * dt * 0.8;
-      heading += (move.turn * turnSign * 2.4 + drift * d * 2.2) * dt;
-      const target = move.fwd * 6 * (1 + d * 0.3);
+      heading += (move.turn * 2.4 + drift * d * 2.2) * dt;
+      const target = move.puking ? 0 : move.fwd * 6 * (1 + d * 0.3);
       speed += (target - speed) * Math.min(1, dt * (4 - d * 2.5));  // drunk legs react later
       forward.set(Math.sin(heading), 0, Math.cos(heading));
       side.set(forward.z, 0, -forward.x);
@@ -84,7 +85,8 @@ export function createPlayer(scene) {
       armR.rotation.x = swing * 0.8 - 0.4;  // keeps the bottle up
       armL.rotation.z = -0.1 - d * 0.6 * (0.5 + 0.5 * Math.sin(t * 1.7));  // flailing for balance
       body.rotation.z = Math.sin(t * 1.9) * 0.35 * d + lateral * 0.08;
-      body.rotation.x = Math.sin(t * 1.1) * 0.15 * d + speed * 0.012;
+      bend += ((move.puking ? 0.75 : 0) - bend) * Math.min(1, dt * 6);  // folds in half to puke
+      body.rotation.x = Math.sin(t * 1.1) * 0.15 * d + speed * 0.012 + bend;
       body.position.y = Math.abs(Math.sin(stride)) * 0.05 * Math.min(1, Math.abs(speed) / 3);
       headG.rotation.z = Math.sin(t * 2.6) * 0.4 * d;
       headG.rotation.x = Math.sin(t * 1.4) * 0.25 * d;
