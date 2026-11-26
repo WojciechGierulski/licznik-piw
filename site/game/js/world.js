@@ -290,14 +290,14 @@ export function buildWorld(scene) {
     // an open stall: back, sides, counter and a header, so you can see the guy inside
     const part = (w, h, d, x, y, z, mat = kebabWall) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); return m; };
     const shell = [
-      part(4, 2.8, 0.12, 0, 1.4, -1.44), part(0.12, 2.8, 3, -1.94, 1.4, 0), part(0.12, 2.8, 3, 1.94, 1.4, 0),
-      part(4, 1.1, 0.12, 0, 0.55, 1.44), part(4.2, 0.08, 0.6, 0, 1.12, 1.42, kebabRoof), part(4, 0.55, 0.12, 0, 2.52, 1.44),
+      part(4, 3.3, 0.12, 0, 1.65, -1.44), part(0.12, 3.3, 3, -1.94, 1.65, 0), part(0.12, 3.3, 3, 1.94, 1.65, 0),
+      part(4, 1.1, 0.12, 0, 0.55, 1.44), part(4.2, 0.08, 0.6, 0, 1.12, 1.42, kebabRoof), part(4, 0.4, 0.12, 0, 3.1, 1.44),
     ];
-    const roof = part(4.6, 0.3, 3.8, 0, 2.95, 0.3, kebabRoof);
+    const roof = part(4.6, 0.3, 3.8, 0, 3.45, 0.3, kebabRoof);
     const lampIn = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.25), new THREE.MeshStandardMaterial({ color: 0xfff0d0, emissive: 0xffd79a, emissiveIntensity: 0.9 }));
-    lampIn.position.set(0, 2.2, 0.2); lampIn.rotation.x = Math.PI / 2;
+    lampIn.position.set(0, 2.85, 0.2); lampIn.rotation.x = Math.PI / 2;
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 0.95), new THREE.MeshStandardMaterial({ map: kebabSign, emissiveMap: kebabSign, emissive: 0xffffff, emissiveIntensity: 0.8 }));
-    sign.position.set(0, 3.55, 1.6);
+    sign.position.set(0, 4.05, 1.6);
     const spit = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.26, 0.8, 10), std({ color: 0x9a5a2a, roughness: 0.6 })); spit.position.set(-1.1, 1.6, 0.3);
     // the kebab guy behind the counter: apron, cap, moustache, knife
     const vendor = new THREE.Group(); vendor.position.set(0.5, 0, 0.6);
