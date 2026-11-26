@@ -132,7 +132,6 @@ export function startGame(autoplay = false) {
     count += kind.count || 1;
     promil = Math.max(0, promil + kind.promil);
     toast(pick(kind.lines));
-    if (kind.teleport && !driving.car) player.root.position.copy(world.randomSpot());
     while (stage < STAGES.length && promil >= STAGES[stage][0]) { toast(STAGES[stage][1], true); stage++; }
   }
 

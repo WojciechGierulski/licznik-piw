@@ -2,7 +2,7 @@
 import * as THREE from "three";
 
 export const KINDS = [
-  { id: "perelka", name: "Perełka", color: 0xf2c94c, promil: 0.5, weight: 32, lines: [
+  { id: "perelka", name: "Perełka", color: 0xf2c94c, promil: 0.4, weight: 32, lines: [
     "Perełka wchodzi jak w masło. Kurwa, jak w masło.",
     "Smakuje jak poniedziałek w urzędzie. Pijesz dalej.",
     "Wątroba właśnie napisała do ciebie „spierdalaj”.",
@@ -11,31 +11,25 @@ export const KINDS = [
     "Ciepła jak dupa ratlerka. Wchodzi.",
     "Piwo z ławki. Ławka też coś z tego ma.",
   ] },
-  { id: "mioduwka", name: "Mioduwka", color: 0xe08a1e, promil: 0.65, weight: 22, lines: [
+  { id: "mioduwka", name: "Mioduwka", color: 0xe08a1e, promil: 0.55, weight: 22, lines: [
     "Miodowe? Pszczoły by cię pozwały.",
     "Słodkie jak twoje kłamstwa do szefa.",
     "Kubuś Puchatek na odwyku też to pił.",
     "Smak dzieciństwa. Spierdolonego, ale dzieciństwa.",
     "Jedna mioduwka dziennie i lekarz sam się zapije.",
   ] },
-  { id: "ipa", name: "Kraft IPA", color: 0x7ed957, promil: 0.9, weight: 12, lines: [
+  { id: "ipa", name: "Kraft IPA", color: 0x7ed957, promil: 0.75, weight: 12, lines: [
     "38 zł za smak choinki. Jesteś debilem i to szanujemy.",
     "Notki grejpfruta, sosny i kredytu we frankach.",
     "Brodaty hipster w okolicy właśnie poczuł ukłucie dumy.",
     "Kurwa, gorzkie jak twoja była.",
     "Craftowe. Czyli drogie i chuj wie co w środku.",
   ] },
-  { id: "promka", name: "Promka 4+2", color: 0x4aa3ff, promil: 2.0, count: 6, weight: 8, lines: [
+  { id: "promka", name: "Promka 4+2", color: 0x4aa3ff, promil: 1.7, count: 6, weight: 8, lines: [
     "Sześciopak w 4 sekundy. Kasjerka zadzwoniła po księdza.",
     "4+2 gratis. Wątroba 0, promocja 6.",
     "Ekonomia, kurwa. Adam Smith by się wzruszył.",
     "Napiłeś się za cały blok. Blok bije brawo.",
-  ] },
-  { id: "bimber", name: "Klekot Bociana", color: 0xcfeeff, promil: 2.2, weight: 5, teleport: true, lines: [
-    "Klekot Bociana. Widzisz Boga. Bóg też jest najebany.",
-    "Oślepłeś na jedno oko. Drugim dalej widzisz piwo.",
-    "Gdzie ja kurwa jestem?",
-    "Dziadek byłby dumny. Dziadek nie żyje. Przez to.",
   ] },
 ];
 const TOTAL = KINDS.reduce((s, k) => s + k.weight, 0);
@@ -73,10 +67,7 @@ function bottleMesh(kind) {
     return b;
   };
   if (kind.id === "promka") for (let i = 0; i < 6; i++) g.add(one((i % 3 - 1) * 0.36, (i < 3 ? -0.2 : 0.2), 0.8));
-  else if (kind.id === "bimber") {
-    const jar = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.6, 14), new THREE.MeshStandardMaterial({ color: kind.color, emissive: kind.color, emissiveIntensity: 0.6, roughness: 0.1, transparent: true, opacity: 0.8 }));
-    jar.position.y = 0.3; g.add(jar);
-  } else g.add(one(0, 0, kind.id === "ipa" ? 1.15 : 1));
+  else g.add(one(0, 0, kind.id === "ipa" ? 1.15 : 1));
   g.scale.setScalar(1.7);  // big enough to see from the street
   const label = new THREE.Sprite(labelMaterial(kind));
   label.scale.set(1.7, 0.53, 1); label.position.y = 1.05;
