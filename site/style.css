@@ -426,3 +426,52 @@ footer a { color: var(--ink-2); }
   .hero-banner h1 { font-size: 24px; }
   .tile .value { font-size: 28px; }
 }
+
+/* Dyntka 3D */
+.game-wrap {
+  position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: 78vh; border-radius: 14px; overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 100%, #3a2a10 0%, #0a0c18 60%); touch-action: none; user-select: none;
+}
+.game-wrap:fullscreen { max-height: none; border-radius: 0; aspect-ratio: auto; }
+#gameCanvas { display: block; width: 100%; height: 100%; }
+.g-hud { position: absolute; left: 14px; top: 12px; right: 14px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
+.g-promil { font-family: "Bricolage Grotesque", system-ui, sans-serif; font-weight: 800; font-size: 34px; line-height: 1; }
+.g-meter { width: 180px; height: 8px; background: rgba(255, 255, 255, .2); border-radius: 999px; margin-top: 6px; overflow: hidden; }
+.g-meter i { display: block; height: 100%; width: 0; border-radius: 999px; transition: width .2s; }
+.g-stats { font-size: 15px; background: rgba(0, 0, 0, .35); padding: 6px 10px; border-radius: 999px; }
+.g-toast {
+  position: absolute; left: 50%; top: 22%; transform: translate(-50%, 8px); opacity: 0; transition: opacity .2s, transform .2s;
+  color: #fff; font-weight: 700; font-size: 17px; text-align: center; background: rgba(0, 0, 0, .55); padding: 8px 16px; border-radius: 12px;
+  pointer-events: none; max-width: 80%;
+}
+.g-toast.show { opacity: 1; transform: translate(-50%, 0); }
+.g-toast.big { font-size: 24px; font-family: "Bricolage Grotesque", system-ui, sans-serif; background: rgba(120, 60, 0, .7); }
+.g-sip { position: absolute; left: 50%; bottom: 18%; transform: translateX(-50%); width: 220px; color: #fff; font-size: 13px; text-align: center; }
+.g-sip i { display: block; height: 8px; border-radius: 999px; background: #8fcf4a; width: 0; margin-bottom: 4px; }
+.g-sip[hidden] { display: none; }
+.g-joy { position: absolute; left: 22px; bottom: 22px; width: 110px; height: 110px; border-radius: 50%; background: rgba(255, 255, 255, .12); border: 2px solid rgba(255, 255, 255, .25); display: none; touch-action: none; }
+.g-joy i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(255, 255, 255, .45); }
+@media (pointer: coarse) { .g-joy { display: block; } }
+.g-overlay {
+  position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; padding: 20px; text-align: center;
+  color: #fff8ea; background: rgba(8, 8, 16, .62); backdrop-filter: blur(2px);
+}
+.g-overlay[hidden] { display: none; }
+.g-overlay p { margin: 0; max-width: 520px; line-height: 1.5; }
+.g-title { font-family: "Bricolage Grotesque", system-ui, sans-serif; font-weight: 800; font-size: clamp(36px, 7vw, 72px); letter-spacing: .04em; color: #ffcf57; text-shadow: 0 4px 30px rgba(255, 160, 0, .45); }
+.g-btn {
+  font: inherit; font-weight: 800; font-size: 18px; color: #2a1a05; border: 0; border-radius: 999px; padding: 10px 26px; cursor: pointer;
+  background: linear-gradient(180deg, #ffd96b, #e09a12); box-shadow: 0 6px 20px rgba(224, 154, 18, .4);
+}
+.g-nick { display: grid; gap: 4px; font-size: 13px; color: rgba(255, 248, 234, .8); }
+.g-nick input { font: inherit; font-size: 15px; text-align: center; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .3); background: rgba(255, 255, 255, .1); color: #fff; padding: 7px 14px; }
+.g-help { font-size: 12.5px; color: rgba(255, 248, 234, .7); max-width: 460px; }
+.game-head { justify-content: flex-end; margin-bottom: 10px; }
+.game-head .more-btn { margin-top: 0; }
+.g-overlay .sub { color: rgba(255, 248, 234, .7); }
+@media (max-width: 560px) {
+  .game-wrap { aspect-ratio: 3 / 4; }
+  .g-promil { font-size: 26px; }
+  .g-meter { width: 120px; }
+  .g-help { display: none; }
+}

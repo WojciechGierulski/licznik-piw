@@ -78,7 +78,16 @@ function init(data) {
   renderThemed();
   renderRecords(); renderWeeks(); renderLevels(); renderMilestones(); renderRookies();
   renderFooter();
-  wireLeaderboard(); wireRange(); wireBadges(); wireLightbox(); wireTooltips();
+  wireLeaderboard(); wireRange(); wireBadges(); wireLightbox();
+  // the 3D game loads only when someone actually wants to play
+  $("gPlay").onclick = () => {
+    $("gPlay").textContent = "Ładowanie…";
+    import("../game/js/game.js").then((g) => g.startGame(true)).catch((err) => {
+      console.error(err);
+      $("gPlay").textContent = "Nie udało się wczytać gry";
+    });
+  };
+  wireTooltips();
 }
 
 applyTheme();

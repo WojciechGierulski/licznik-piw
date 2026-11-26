@@ -9,6 +9,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&display=swap">
   <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    } }
+  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
@@ -151,6 +157,35 @@
     <div class="card">
       <div class="card-head"><div><h2><span class="h-ico">🐣</span>Debiutanci</h2><div class="sub" id="rookiesSub"></div></div></div>
       <div class="weeks" id="rookies"></div>
+    </div>
+  </section>
+
+  <section class="card grid-1 game-card">
+    <div class="card-head game-head">
+      <button class="more-btn" id="gFull" type="button">⛶ Pełny ekran</button>
+    </div>
+    <div class="game-wrap" id="gameWrap">
+      <canvas id="gameCanvas"></canvas>
+      <div class="g-hud">
+        <div class="g-promil"><span id="gPromil">0,00</span> ‰<div class="g-meter"><i id="gBar"></i></div></div>
+        <div class="g-stats">🍺 <b id="gBeers">0</b> · ⏱ <b id="gTime">0:00</b></div>
+      </div>
+      <div class="g-sip" id="gSip" hidden><i></i><span>Pijesz… nie ruszaj się</span></div>
+      <div class="g-toast" id="gToast"></div>
+      <div class="g-joy" id="gJoy"><i></i></div>
+      <div class="g-overlay" id="gStart">
+        <div class="g-title">DYNTKA</div>
+        <p>Nocne osiedle. Piwa leżą wszędzie. Każde kolejne bardziej buja światem.<br>Dobij do <b>10 promili</b>, zanim organizm zdąży wytrzeźwieć.</p>
+        <label class="g-nick">Ksywa na nagrobek <input id="gNick" maxlength="16" placeholder="np. Piech" autocomplete="off"></label>
+        <button class="g-btn" id="gPlay" type="button">Graj 🍺</button>
+        <div class="g-help">WASD / strzałki albo joystick · Kraft IPA trzeba wypić na stojąco · Bezalko cofa promile</div>
+        <div class="sub" id="gBest"></div>
+      </div>
+      <div class="g-overlay" id="gEnd" hidden>
+        <div class="g-title">💀 DYNTKA 🏆</div>
+        <p id="gEndText"></p>
+        <button class="g-btn" id="gAgain" type="button">Jeszcze raz</button>
+      </div>
     </div>
   </section>
 

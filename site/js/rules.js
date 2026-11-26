@@ -19,6 +19,10 @@ export const level = (n) => {
 };
 
 export const ACH = [
+  { id: "first", ico: "🍺", name: "Pierwsze koty za płoty", desc: "Pierwsze zaliczone piwo w grupie" },
+  { id: "double", ico: "✌️", name: "Dublet", desc: "2 piwa jednego dnia" },
+  { id: "friday", ico: "🎊", name: "Piąteczek", desc: "Piwo w piątek" },
+  { id: "tenTotal", ico: "🎳", name: "Dziesiątka", desc: "10 piw łącznie" },
   { id: "jubilat", ico: "🎯", name: "Jubilat", desc: "Wbił okrągły numer licznika (wielokrotność 100)" },
   { id: "lucky", ico: "🍀", name: "Szczęśliwy numer", desc: "Wbił numer z samych tych samych cyfr (111, 777…)" },
   { id: "hat", ico: "🎩", name: "Hat-trick", desc: "3 piwa jednego dnia" },
@@ -90,6 +94,8 @@ function computeAchievements(weekWinners) {
     if (lastT[b.p] !== null && b.t - lastT[b.p] <= 900) add(b.p, "flash");
     if (lastDayOf[b.p] !== null && b.day - lastDayOf[b.p] - 1 >= 7) add(b.p, "comeback");  // 7 full days without a beer in between
     if (b.k === "c") add(b.p, "clash");
+    if (lastT[b.p] === null) add(b.p, "first");
+    if (b.dow === 4) add(b.p, "friday");
     const y = dateOfIdx(b.day).getFullYear();
     if (!seenYear.has(y)) { seenYear.add(y); if (beers.find((x) => x.timed) !== b) add(b.p, "newyear"); }
     lastT[b.p] = b.t; lastDayOf[b.p] = b.day;
@@ -100,6 +106,7 @@ function computeAchievements(weekWinners) {
     let run = 0, prev = null;
     for (const d of days) {
       const n = daysOf[i].get(d);
+      if (n >= 2) add(i, "double");
       if (n >= 3) add(i, "hat");
       if (n >= 5) add(i, "five");
       if (n >= 10) add(i, "ten");
@@ -110,6 +117,7 @@ function computeAchievements(weekWinners) {
       prev = d;
       if (dateOfIdx(d).getDay() === 5 && daysOf[i].has(d + 1) && daysOf[i].has(d + 2)) add(i, "weekend");
     }
+    if (p.total >= 10) add(i, "tenTotal");
     if (p.total >= 100) add(i, "century");
   });
   for (const w of weekWinners) for (const p of w.winners) add(p, "king");
