@@ -42,6 +42,7 @@ export const ACH = [
   { id: "closer", ico: "🌙", name: "Zamykacz", desc: "Ostatnie piwo dnia w całej grupie" },
   { id: "rescue", ico: "🚨", name: "Ratownik", desc: "Przerwał ciszę: pierwsze piwo grupy po co najmniej 18 godzinach bez piwa" },
   { id: "nice", ico: "😏", name: "Nice", desc: "Wbił numer kończący się na 69" },
+  { id: "sixseven", ico: "🤷", name: "Six seven", desc: "Wbił numer kończący się na 67" },
   { id: "weed", ico: "🌿", name: "Ziółko", desc: "Wbił numer #420" },
   { id: "demon", ico: "😈", name: "Demon piwa", desc: "Wbił numer #666" },
   { id: "splitg", ico: "🇮🇪", name: "Split the G", desc: "Przełamał G w Guinnessie (zatwierdzone przez grupę)" },
@@ -76,6 +77,7 @@ function computeAchievements(weekWinners) {
     lastAny = b.t;
     const nums = numbersOf(b), own = b.k !== "c";  // a duplicate number is not "hitting" it
     if (nums.some((n) => n % 100 === 69)) add(b.p, "nice");
+    if (own && nums.some((n) => n % 100 === 67)) add(b.p, "sixseven");
     if (own && nums.some((n) => n % 1000 === 420)) add(b.p, "weed");
     if (own && nums.some((n) => n % 1000 === 666)) add(b.p, "demon");
     if (lastT[b.p] === null && joined[b.p] && b.t - joined[b.p] <= 3600) add(b.p, "dragon");
