@@ -100,7 +100,8 @@ export function buildWorld(scene) {
   for (let gx = -3; gx <= 3; gx++) for (let gz = -3; gz <= 3; gz++) {
     const x = gx * GRID, z = gz * GRID;
     const side = new THREE.Mesh(new THREE.BoxGeometry(24, 0.14, 24), walk); side.position.set(x, 0.07, z); side.receiveShadow = true;
-    const edge = new THREE.Mesh(new THREE.BoxGeometry(24.3, 0.16, 24.3), curb); edge.position.set(x, 0.06, z);
+    // the curb sits 2 cm below the pavement, so their tops never share a plane (that flickered)
+    const edge = new THREE.Mesh(new THREE.BoxGeometry(24.3, 0.12, 24.3), curb); edge.position.set(x, 0.06, z);
     const lawn = new THREE.Mesh(new THREE.BoxGeometry(21, 0.16, 21), grass); lawn.position.set(x, 0.08, z); lawn.receiveShadow = true;
     scene.add(edge, side, lawn);
   }
