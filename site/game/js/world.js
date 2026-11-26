@@ -262,6 +262,7 @@ export function buildWorld(scene) {
     const back = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.6, 0.1), wood); back.position.set(x, 0.95, z - 0.32); back.castShadow = true; scene.add(back);
   }
   const leaf = std({ color: 0x1e4a26 }), bark = std({ color: 0x4a3420 });
+  const trees = [];  // a car can knock them down
   for (let i = 0; i < 60; i++) {
     const x = (Math.random() - 0.5) * HALF * 2, z = (Math.random() - 0.5) * HALF * 2;
     if (Math.abs(x) < 12 && Math.abs(z) < 12) continue;
@@ -271,7 +272,37 @@ export function buildWorld(scene) {
     t.add(tr, cr); t.traverse((m) => { m.castShadow = true; });
     t.position.set(x, 0, z);
     scene.add(t);
-    colliders.push({ minX: x - 0.3, maxX: x + 0.3, minZ: z - 0.3, maxZ: z + 0.3 });
+    const collider = { minX: x - 0.3, maxX: x + 0.3, minZ: z - 0.3, maxZ: z + 0.3 };
+    colliders.push(collider);
+    trees.push({ group: t, collider, fall: 0, dir: 0 });
+  }
+
+  // kebab stands: eating there sobers you up a bit
+  const kebabs = [];
+  const kebabSign = canvasTex(512, 128, (g, w, h) => {
+    g.fillStyle = "#b3261e"; g.fillRect(0, 0, w, h);
+    g.fillStyle = "#ffe066"; g.font = "bold 74px system-ui, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillText("KEBAB 24h", w / 2, h / 2 + 4);
+  });
+  const kebabWall = std({ color: 0xd9cfb8 }), kebabRoof = std({ color: 0x8a1c1c });
+  for (const [x, z, rot] of [[-8, 9, Math.PI], [60, -9, Math.PI], [-52, 52, Math.PI / 2]]) {  // the first one faces the start
+    const k = new THREE.Group();
+    const box = new THREE.Mesh(new THREE.BoxGeometry(4, 2.8, 3), kebabWall); box.position.y = 1.4;
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.3, 3.8), kebabRoof); roof.position.set(0, 2.95, 0.3);
+    const counter = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.1, 0.5), kebabRoof); counter.position.set(0, 0.55, 1.75);
+    const hatch = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 1.1), new THREE.MeshStandardMaterial({ color: 0xffe2a0, emissive: 0xffc46b, emissiveIntensity: 2 }));
+    hatch.position.set(0, 1.75, 1.51);
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 0.95), new THREE.MeshStandardMaterial({ map: kebabSign, emissiveMap: kebabSign, emissive: 0xffffff, emissiveIntensity: 1.6 }));
+    sign.position.set(0, 3.55, 1.6);
+    const spit = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.26, 0.8, 10), std({ color: 0x9a5a2a, roughness: 0.6 })); spit.position.set(-1, 1.75, 1.3);
+    k.add(box, roof, counter, hatch, sign, spit);
+    k.traverse((m) => { if (m.isMesh) m.castShadow = true; });
+    k.position.set(x, 0, z); k.rotation.y = rot;
+    scene.add(k);
+    const hw = Math.abs(Math.cos(rot)) * 2.1 + Math.abs(Math.sin(rot)) * 1.7, hd = Math.abs(Math.sin(rot)) * 2.1 + Math.abs(Math.cos(rot)) * 1.7;
+    colliders.push({ minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd });
+    const front = new THREE.Vector3(0, 0, 2.8).applyAxisAngle(new THREE.Vector3(0, 1, 0), rot).add(k.position);
+    kebabs.push({ group: k, front, cooldown: 0 });
   }
 
   const blocked = (x, z, margin) => colliders.some((c) => x > c.minX - margin && x < c.maxX + margin && z > c.minZ - margin && z < c.maxZ + margin);
@@ -280,7 +311,12 @@ export function buildWorld(scene) {
   return {
     lamps,
     // move the few real lights to the lamps nearest the player, and the moon's shadow box with them
-    update(pos) {
+    update(pos, dt = 0) {
+      for (const t of trees) if (t.fall > 0 && t.fall < 1) {  // knocked-down trees keep falling
+        t.fall = Math.min(1, t.fall + dt * 1.8);
+        t.group.rotation.set(Math.cos(t.dir) * t.fall * 1.45, 0, -Math.sin(t.dir) * t.fall * 1.45);
+      }
+      for (const k of kebabs) k.cooldown = Math.max(0, k.cooldown - dt);
       nearest.length = 0;
       for (const l of lamps) nearest.push([l.userData.spot.distanceToSquared(pos), l]);
       nearest.sort((a, b) => a[0] - b[0]);
@@ -289,6 +325,16 @@ export function buildWorld(scene) {
       moon.position.set(pos.x - 30, 50, pos.z + 25);
     },
     cars,
+    // the stand you are standing at, if it is ready to serve
+    kebabAt(pos) { return kebabs.find((k) => k.cooldown <= 0 && k.front.distanceTo(pos) < 2.5); },
+    // a car hitting a tree knocks it down (it stops being an obstacle); true when it happened
+    smashTree(pos, heading, r) {
+      const t = trees.find((x) => x.fall === 0 && x.group.position.distanceTo(pos) < r);
+      if (!t) return false;
+      t.fall = 0.01; t.dir = heading;
+      colliders.splice(colliders.indexOf(t.collider), 1);
+      return true;
+    },
     // a stolen car stops being an obstacle; a parked one becomes one again where you left it
     unpark(entry) { colliders.splice(colliders.indexOf(entry.collider), 1); entry.collider = null; },
     park,

@@ -40,7 +40,7 @@ export function createDrunkFx(renderer, scene, camera) {
   composer.addPass(pass);
   composer.addPass(new OutputPass());
 
-  let blackout = 0, blackoutLeft = 0, green = 0, greenLeft = 0, vomitCooldown = 8;
+  let blackout = 0, blackoutLeft = 0, blackoutCooldown = 25, green = 0, greenLeft = 0, vomitCooldown = 8;
   const camPos = new THREE.Vector3(), look = new THREE.Vector3();
 
   return {
@@ -52,7 +52,8 @@ export function createDrunkFx(renderer, scene, camera) {
     update(dt, t, d, player, dist = 6.5) {
       let event = null;
       // random events get more frequent the drunker you are
-      if (blackoutLeft <= 0 && d > 0.55 && Math.random() < dt * (d - 0.55) * 0.5) { blackoutLeft = 0.7 + d; event = "blackout"; }
+      blackoutCooldown -= dt;
+      if (blackoutCooldown <= 0 && d > 0.7 && Math.random() < dt * (d - 0.7) * 0.25) { blackoutLeft = 0.7 + d; blackoutCooldown = 25; event = "blackout"; }
       vomitCooldown -= dt;
       if (vomitCooldown <= 0 && d > 0.2 && Math.random() < dt * (d - 0.2) * 0.4) { vomitCooldown = 9 - d * 5; greenLeft = 1.6; event = "vomit"; }
       blackoutLeft -= dt; greenLeft -= dt;
@@ -90,6 +91,6 @@ export function createDrunkFx(renderer, scene, camera) {
       u.uTime.value = t; u.uWave.value = 0; u.uDouble.value = 0; u.uSplit.value = 0; u.uVignette.value = 0.35; u.uBlack.value = 0; u.uGreen.value = 0;
       bloom.strength = 0.8; bloom.radius = 0.55;
     },
-    reset() { blackout = 0; blackoutLeft = 0; green = 0; greenLeft = 0; vomitCooldown = 8; },
+    reset() { blackout = 0; blackoutLeft = 0; blackoutCooldown = 25; green = 0; greenLeft = 0; vomitCooldown = 8; },
   };
 }

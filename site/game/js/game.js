@@ -10,8 +10,8 @@ import { createDriving } from "./car.js";
 import { createVomit } from "./vomit.js";
 
 const GOAL = 10;          // ‰ for the win
-const DECAY = 0.005;      // ‰ the body burns per second, so you can't stop drinking
-const DROP_EVERY = 3;     // seconds between beers falling from the sky near you
+const DECAY = 0.006;      // ‰ the body burns per second, so you can't stop drinking
+const DROP_EVERY = 4;     // seconds between beers falling from the sky near you
 const STAGES = [
   [1, "Rozluźnienie. Wszystko pod kontrolą."],
   [2, "Świat się buja. To nie świat, kurwa, to ty."],
@@ -30,6 +30,8 @@ const LINES = {
   vomit: ["BLEEEEEEH.", "Oddajesz Perełkę naturze.", "Pawik jak z obrazka. Monet by się zesrał.", "Wyszło nosem. Nawet frytki.", "Pizza z wczoraj pozdrawia."],
   vomitCar: ["Porzygałeś deskę rozdzielczą. Właściciel będzie zachwycony.", "Rzygasz na przednią szybę. Wycieraczki nie pomogą."],
   blackout: ["*urwał się film*", "*film się urwał, dubbing został*", "*czarna dziura w pamięci*"],
+  tree: ["Drzewo: 0. Ty: 1.", "Ekolodzy już jadą.", "Kurwa, brzoza. Była.", "Wycinka bez pozwolenia. Grzywna w drodze.", "Dzięcioł stracił mieszkanie."],
+  kebab: ["Kebab z baraniny. Baranina z kota. Smakuje.", "Sos czosnkowy wchłonął promile i twoją godność.", "Pan Ali dorzucił frytki. Wątroba płacze ze szczęścia.", "Ostry? Kurwa, będzie bolało dwa razy.", "Kebab trzeźwi. Na chwilę. Jak terapia."],
 };
 const $ = (id) => document.getElementById(id);
 const store = { get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch (e) { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } } };
@@ -83,11 +85,18 @@ export function startGame(autoplay = false) {
   let state = "menu", promil = 0, drunk = 0, count = 0, elapsed = 0, stage = 0, grave = null, orbit = 0, toastTimer = 0, puking = 0, fallDone = 0, dropIn = DROP_EVERY;
   const clock = new THREE.Clock(), mouth = new THREE.Vector3(), face = new THREE.Vector3();
 
+  // messages wait in a queue, so each one stays long enough to read
+  const queue = [];
+  const showNext = () => {
+    const el = $("gToast"), next = queue.shift();
+    if (!next) { el.className = "g-toast"; toastTimer = 0; return; }
+    el.textContent = next.text; el.className = `g-toast show ${next.big ? "big" : ""}`;
+    toastTimer = setTimeout(showNext, (next.big ? 3800 : 3000) + next.text.length * 20);
+  };
   const toast = (text, big = false) => {
-    const el = $("gToast");
-    el.textContent = text; el.className = `g-toast show ${big ? "big" : ""}`;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { el.className = "g-toast"; }, big ? 2600 : 2000);
+    if (queue.length >= 3) queue.shift();  // don't fall minutes behind
+    queue.push({ text, big });
+    if (!toastTimer) showNext();
   };
   const hud = () => {
     $("gPromil").textContent = promil.toFixed(2).replace(".", ",");
@@ -114,6 +123,7 @@ export function startGame(autoplay = false) {
     beers.reset(player.root.position); fx.reset(); vomit.clear();
     camera.position.set(0, 4, -7);
     $("gStart").hidden = true; $("gEnd").hidden = true;
+    queue.length = 0; clearTimeout(toastTimer); toastTimer = 0; $("gToast").className = "g-toast";
     state = "play"; input.active = true;
     hud();
   }
@@ -181,6 +191,10 @@ export function startGame(autoplay = false) {
 
     let follow = player, dist = 6.5, reach = 2.6;
     if (driving.car) {
+      if (Math.abs(driving.speed) > 4 && world.smashTree(driving.follow.root.position, driving.heading, 2)) {
+        driving.slow(0.75);
+        toast(pick(LINES.tree));
+      }
       const impact = driving.update(dt, move, drunk, t);
       if (impact > 6) toast(pick(LINES.crash), impact > 14);
       follow = driving.follow; dist = 9; reach = 3.2;
@@ -188,8 +202,14 @@ export function startGame(autoplay = false) {
     } else {
       player.update(dt, move, drunk, t);
       world.resolve(player.root.position, 0.45);
+      const kebab = world.kebabAt(player.root.position);
+      if (kebab) {
+        kebab.cooldown = 30;
+        promil = Math.max(0, promil - 1.2);
+        toast(`🥙 ${pick(LINES.kebab)} (−1,2 ‰)`);
+      }
     }
-    world.update(follow.root.position);
+    world.update(follow.root.position, dt);
     if ((dropIn -= dt) <= 0) { dropIn = DROP_EVERY; beers.drop(follow.root.position); }
     beers.update(dt, t, follow.root.position, reach, drink);
 

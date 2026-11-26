@@ -9,6 +9,8 @@ export function createDriving(world) {
   return {
     get car() { return car; },
     get speed() { return speed; },
+    get heading() { return heading; },
+    slow(f) { speed *= f; },
     follow,
     enter(entry) {
       car = entry; world.unpark(entry);
