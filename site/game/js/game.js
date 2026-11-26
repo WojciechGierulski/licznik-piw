@@ -146,7 +146,7 @@ export function startGame(autoplay = false) {
     $("gTime").textContent = mmss(elapsed);
   };
   const nearestCar = () => {
-    let best = null, bd = 3.2;
+    let best = null, bd = 6;  // the "steal the car" hint shows up (and works) from a few steps away
     for (const c of world.cars) { const d = c.group.position.distanceTo(player.root.position); if (d < bd) { bd = d; best = c; } }
     return best;
   };
