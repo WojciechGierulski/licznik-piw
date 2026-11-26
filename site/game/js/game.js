@@ -141,7 +141,7 @@ export function startGame(autoplay = false) {
     const el = $("gToast"), next = queue.shift();
     if (!next) { el.className = "g-toast"; toastTimer = 0; return; }
     el.textContent = next.text; el.className = `g-toast show ${next.big ? "big" : ""}`;
-    toastTimer = setTimeout(showNext, (next.big ? 6000 : 5300) + next.text.length * 25);
+    toastTimer = setTimeout(showNext, (next.big ? 4500 : 3800) + next.text.length * 25);
   };
   const toast = (text, big = false) => {
     if (queue.length >= 3) queue.shift();  // don't fall minutes behind
