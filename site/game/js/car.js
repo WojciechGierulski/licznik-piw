@@ -3,7 +3,7 @@ import * as THREE from "three";
 
 export function createDriving(world) {
   let car = null, heading = 0, speed = 0, steer = 0, swerve = 0;
-  const forward = new THREE.Vector3();
+  const forward = new THREE.Vector3(), velocity = new THREE.Vector3(), wanted = new THREE.Vector3();
   const follow = { root: { position: new THREE.Vector3() }, heading: 0 };  // what the camera tracks
 
   return {
@@ -14,7 +14,7 @@ export function createDriving(world) {
     follow,
     enter(entry) {
       car = entry; world.unpark(entry);
-      heading = entry.group.rotation.y; speed = 0; steer = 0;
+      heading = entry.group.rotation.y; speed = 0; steer = 0; velocity.set(0, 0, 0);
     },
     exit() {
       world.park(car);
@@ -31,15 +31,19 @@ export function createDriving(world) {
       const gas = move.fwd;
       const target = gas > 0 ? gas * (22 + d * 10) : gas * 8;
       speed += (target - speed) * Math.min(1, dt * (gas === 0 ? 0.8 : 1.6));
-      const grip = Math.min(1, Math.abs(speed) / 6);
-      heading += (steer * 1.6 + swerve * d * 1.3) * grip * Math.sign(speed || 1) * dt;
+      const traction = Math.min(1, Math.abs(speed) / 6);
+      heading += (steer * (1.6 + d * 0.6) + swerve * d * 1.3) * traction * Math.sign(speed || 1) * dt;
       forward.set(Math.sin(heading), 0, Math.cos(heading));
+      // drift: the direction of travel catches up with the bonnet slower the drunker you are
+      const grip = 8 - d * 6.8;
+      wanted.copy(forward).multiplyScalar(speed);
+      velocity.lerp(wanted, Math.min(1, dt * grip));
       const pos = car.group.position;
-      pos.addScaledVector(forward, speed * dt);
+      pos.addScaledVector(velocity, dt);
       let impact = 0;
-      if (world.resolve(pos, 1.6) && Math.abs(speed) > 2) { impact = Math.abs(speed); speed *= -0.35; }
+      if (world.resolve(pos, 1.6) && velocity.length() > 2) { impact = velocity.length(); speed *= -0.35; velocity.multiplyScalar(-0.35); }
       car.group.rotation.y = heading;
-      car.group.rotation.z = -steer * grip * 0.06 - swerve * d * 0.05;  // body roll in turns
+      car.group.rotation.z = -steer * traction * (0.06 + d * 0.06) - swerve * d * 0.05;  // body roll in turns
       follow.root.position.copy(pos);
       follow.heading = heading;
       return impact;
