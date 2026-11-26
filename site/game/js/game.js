@@ -11,7 +11,8 @@ import { createVomit } from "./vomit.js";
 
 const GOAL = 10;          // ‰ for the win
 const DECAY = 0.006;      // ‰ the body burns per second, so you can't stop drinking
-const DROP_EVERY = 4;     // seconds between beers falling from the sky near you
+const DROP_EVERY = 4;
+const USE_RANGE = 6;      // E works (and the hint shows) this far from a car or a kebab stand     // seconds between beers falling from the sky near you
 const STAGES = [
   [2, "Świat się buja. To nie świat, to ty."],
   [3, "Widzisz dwa piwa. Wypij oba."],
@@ -146,7 +147,7 @@ export function startGame(autoplay = false) {
     $("gTime").textContent = mmss(elapsed);
   };
   const nearestCar = () => {
-    let best = null, bd = 6;  // the "steal the car" hint shows up (and works) from a few steps away
+    let best = null, bd = USE_RANGE;  // the "steal the car" hint shows up (and works) from a few steps away
     for (const c of world.cars) { const d = c.group.position.distanceTo(player.root.position); if (d < bd) { bd = d; best = c; } }
     return best;
   };
@@ -176,18 +177,26 @@ export function startGame(autoplay = false) {
     while (stage < STAGES.length && promil >= STAGES[stage][0]) { toast(STAGES[stage][1], true); stage++; }
   }
 
-  function toggleCar() {
-    if (driving.car) {
+  // what E (or the touch button) would do right now: get out, eat at the nearest stand, or steal the nearest car
+  function useTarget() {
+    if (driving.car) return { kind: "exit" };
+    const pos = player.root.position, car = nearestCar(), kebab = world.kebabAt(pos, USE_RANGE);
+    if (kebab && (!car || kebab.front.distanceTo(pos) < car.group.position.distanceTo(pos))) return { kind: "kebab", kebab };
+    return car ? { kind: "car", car } : null;
+  }
+  function use(target) {
+    if (target.kind === "exit") {
       player.root.position.copy(driving.exit());
       player.root.visible = true;
       toast(pick(LINES.exit));
-      return;
+    } else if (target.kind === "kebab") {
+      player.root.position.copy(target.kebab.front);  // step up to the counter
+      startEating(target.kebab);
+    } else {
+      driving.enter(target.car);
+      player.root.visible = false;
+      toast(pick(LINES.enter));
     }
-    const car = nearestCar();
-    if (!car) return;
-    driving.enter(car);
-    player.root.visible = false;
-    toast(pick(LINES.enter));
   }
 
   function die() {
@@ -227,7 +236,8 @@ export function startGame(autoplay = false) {
     drunk = Math.min(1, promil / GOAL);
     const move = input.read();
     if (eating) { move.fwd = 0; move.turn = 0; move.use = false; move.eating = eating.t > 0.9; }
-    if (move.use) toggleCar();
+    const target = !eating && useTarget();
+    if (move.use && target) use(target);
     move.puking = puking > 0;
     puking -= dt;
 
@@ -244,8 +254,6 @@ export function startGame(autoplay = false) {
     } else {
       player.update(dt, move, drunk, t);
       world.resolve(player.root.position, 0.45);
-      const kebab = !eating && world.kebabAt(player.root.position);
-      if (kebab) startEating(kebab);
       if (eating) eat(dt);
     }
     world.update(follow.root.position, dt);
@@ -267,10 +275,10 @@ export function startGame(autoplay = false) {
     vomit.update(dt); sauce.update(dt);
 
     world.lamps.forEach((l, i) => { l.rotation.z = Math.sin(t * 2 + i) * 0.35 * drunk * drunk; l.position.y = Math.abs(Math.sin(t * 3 + i)) * 0.6 * drunk * drunk; });
-    const car = !driving.car && nearestCar();
-    $("gHint").hidden = !car;
-    $("gUse").hidden = !(car || driving.car);
-    $("gUse").textContent = driving.car ? "🚶" : "🚗";
+    const hint = target && { exit: ["🚶", "wysiądź"], kebab: ["🥙", "zjedz kebsa"], car: ["🚗", "ukradnij auto"] }[target.kind];
+    $("gHint").hidden = !hint || target.kind === "exit";
+    $("gUse").hidden = !hint;
+    if (hint) { $("gHint").innerHTML = `<kbd>E</kbd> ${hint[1]}`; $("gUse").textContent = hint[0]; }
     hud();
     if (promil >= GOAL) die();
   }

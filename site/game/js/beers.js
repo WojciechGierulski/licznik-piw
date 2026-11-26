@@ -8,7 +8,7 @@ export const KINDS = [
     "Ciepła jak dupa ratlerka. Wchodzi.",
     "Smakuje jak poniedziałek w urzędzie. Pijesz dalej.",
   ] },
-  { id: "mioduwka", name: "Mioduwka", color: 0xe08a1e, promil: 0.45, weight: 22, lines: [
+  { id: "mioduwka", name: "Miodówka", color: 0xe08a1e, promil: 0.45, weight: 22, lines: [
     "Kubuś Puchatek na odwyku też to pił.",
     "Słodkie jak twoje kłamstwa do szefa.",
     "Miodowe. Pszczoły złożyły pozew.",

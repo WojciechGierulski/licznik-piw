@@ -355,8 +355,12 @@ export function buildWorld(scene) {
       moon.position.set(pos.x - 30, 50, pos.z + 25);
     },
     cars,
-    // the stand you are standing at, if it is ready to serve
-    kebabAt(pos) { return kebabs.find((k) => k.cooldown <= 0 && k.front.distanceTo(pos) < 2.5); },
+    // the nearest stand within r that is ready to serve
+    kebabAt(pos, r) {
+      let best = null;
+      for (const k of kebabs) if (k.cooldown <= 0 && k.front.distanceTo(pos) < r && (!best || k.front.distanceTo(pos) < best.front.distanceTo(pos))) best = k;
+      return best;
+    },
     // a car hitting a tree knocks it down (it stops being an obstacle); true when it happened
     smashTree(pos, heading, r) {
       const t = trees.find((x) => x.fall === 0 && x.group.position.distanceTo(pos) < r);
