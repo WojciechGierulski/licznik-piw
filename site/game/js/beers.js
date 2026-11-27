@@ -67,7 +67,7 @@ export function bottleMesh(kind) {
   return g;
 }
 
-export function createBeers(scene, world, count = 140) {
+export function createBeers(scene, world, count = 90) {
   const items = [];
   const spawn = (item, near) => {
     if (item) scene.remove(item.mesh);

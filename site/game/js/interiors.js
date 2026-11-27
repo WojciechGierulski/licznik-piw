@@ -252,12 +252,22 @@ function grandma(assets) {
   const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.18, 0.03, 18), std({ color: 0xf4f4f4, roughness: 0.3 })); plate.position.set(1.2, 0.62, -0.2);
   const stool = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), brown); stool.position.set(1.2, 0.3, -0.2);
   scene.add(plate); r.solid(stool, 0.6, 0.6);
-  for (let i = 0; i < 6; i++) { const p = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2), std({ color: 0xf0dca8 })); p.position.set(1.2 + Math.cos(i) * 0.12, 0.635, -0.2 + Math.sin(i) * 0.12); p.scale.set(1.3, 0.6, 0.8); scene.add(p); }
+  const dough = std({ color: 0xf0dca8 }), pierog = new THREE.SphereGeometry(0.06, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2);
+  for (let i = 0; i < 6; i++) { const p = new THREE.Mesh(pierog, dough); p.position.set(1.2 + Math.cos(i) * 0.12, 0.635, -0.2 + Math.sin(i) * 0.12); p.scale.set(1.3, 0.6, 0.8); scene.add(p); }
+  // a handful of pierogi to eat, the same way as a kebab: from the plate to your hand, bite by bite
+  const handful = () => {
+    const g = new THREE.Group();
+    for (let i = 0; i < 3; i++) { const p = new THREE.Mesh(pierog, dough); p.position.set((i - 1) * 0.07, i === 1 ? 0.03 : 0, 0); p.scale.set(1.3, 0.6, 0.8); g.add(p); }
+    return g;
+  };
   let cooldown = 0;
   r.npcs.push({ person: gm, label: "babcia, daj pierogi", icon: "🥟", sitting: true, act() {
     if (cooldown > 0) return { text: "Babcia chrapie przy Kole Fortuny." };
     cooldown = 25;
-    return { text: `🥟 ${pick(["Jedz, jedz, chudy jesteś jak szczypiorek.", "Zawsze wiedziałam, że skończysz jak dziadek. Dziadek był wspaniały.", "Dziewczynę to już masz? No tak, z taką gębą.", "Ruskie. Z miłością i cebulką."])} (−1 ‰)`, promil: -1 };
+    return {
+      text: `🥟 ${pick(["Jedz, jedz, chudy jesteś jak szczypiorek.", "Zawsze wiedziałam, że skończysz jak dziadek. Dziadek był wspaniały.", "Dziewczynę to już masz? No tak, z taką gębą.", "Ruskie. Z miłością i cebulką."])}`,
+      food: { mesh: handful(), source: (out) => out.copy(plate.position), sober: 1, icon: "🥟" },
+    };
   } });
   r.tickers.push((dt) => { cooldown -= dt; screen.material.emissiveIntensity = 1.2 + Math.random() * 0.6; tvLight.intensity = 4 + Math.random() * 2; });
   return r;

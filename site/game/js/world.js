@@ -231,8 +231,10 @@ export function buildWorld(scene, assets) {
   });
   const coneMat = new THREE.MeshBasicMaterial({ color: 0xffc070, transparent: true, opacity: 0.05, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
   const poolMat = new THREE.MeshBasicMaterial({ map: poolTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+  // on the pavement edge (not in the road, where they blocked cars), on every other block
   for (let s = -3; s <= 3; s++) for (let k = -3; k <= 3; k++) {
-    for (const [x, z, rot] of [[s * GRID + GRID / 2 - 1.6, k * GRID + 6, 0], [k * GRID + 6, s * GRID + GRID / 2 - 1.6, Math.PI / 2]]) {
+    if ((s + k) % 2) continue;
+    for (const [x, z, rot] of [[s * GRID + GRID / 2 - 3.4, k * GRID + 6, 0], [k * GRID + 6, s * GRID + GRID / 2 - 3.4, Math.PI / 2]]) {
       const lamp = new THREE.Group();
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.11, 6, 8), poleMat); pole.position.y = 3; pole.castShadow = true;
       const arm = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.08), poleMat); arm.position.set(0.55, 5.95, 0);
@@ -300,7 +302,7 @@ export function buildWorld(scene, assets) {
 
   // benches and trees
   const wood = std({ color: 0x6b4a2b });
-  for (let i = 0; i < 26; i++) {
+  for (let i = 0; i < 10; i++) {
     const x = (Math.floor(Math.random() * 7) - 3) * GRID + 8, z = (Math.floor(Math.random() * 7) - 3) * GRID - 8;
     const bench = add(new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.15, 0.7), wood), x, z, 2.2, 0.7);
     bench.position.y = 0.6;
@@ -347,6 +349,16 @@ export function buildWorld(scene, assets) {
     // the kebab guy behind the counter, slicing meat until someone orders
     const vendor = createActor(assets.man, { height: 1.78, colors: { Shirt: 0xf2efe6, Pants: 0x2b2b2b, Hair: 0x111111 } });
     vendor.root.position.set(0.5, 0, 0.55);
+    const cap = new THREE.Group(), capMat = std({ color: 0xb3261e, roughness: 0.7 });
+    const crown = new THREE.Mesh(new THREE.SphereGeometry(0.125, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), capMat);
+    const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.015, 14, 1, false, -Math.PI / 2, Math.PI), capMat); brim.position.z = 0.06;
+    cap.add(crown, brim); cap.position.set(0, 1.66, 0.0); cap.scale.set(1, 0.9, 1.08);
+    const tache = new THREE.Group(), hairMat = std({ color: 0x141010, roughness: 0.9 });
+    const mid = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.028, 0.03), hairMat);
+    const tipL = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.06, 0.025), hairMat); tipL.position.set(-0.055, -0.025, 0);
+    const tipR = tipL.clone(); tipR.position.x = 0.055;
+    tache.add(mid, tipL, tipR); tache.position.set(0, 1.565, 0.115);
+    vendor.attach("Head", cap); vendor.attach("Head", tache);
     vendor.play("Idle");
     const handV = vendor.bones["PalmR"];
     k.add(...shell, roof, lampIn, sign, spit, vendor.root);

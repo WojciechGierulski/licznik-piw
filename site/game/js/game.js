@@ -13,7 +13,7 @@ import { loadAssets } from "./actor.js";
 
 const GOAL = 10;          // ‰ for the win
 const DECAY = 0.006;      // ‰ the body burns per second, so you can't stop drinking
-const DROP_EVERY = 4;
+const DROP_EVERY = 7;
 const USE_RANGE = 6;      // E works (and the hint shows) this far from a car or a kebab stand     // seconds between beers falling from the sky near you
 const STAGES = [
   [2, "Świat się buja. To nie świat, to ty."],
@@ -111,11 +111,15 @@ export async function startGame(autoplay = false) {
   const clock = new THREE.Clock(), mouth = new THREE.Vector3(), face = new THREE.Vector3(), handPos = new THREE.Vector3();
   const KEBAB_TIME = 2.9, BITES = [1.3, 1.9, 2.5];
 
-  function startEating(k) {
+  // food: {mesh, source(out): where it is handed over from, sober: ‰ it takes off, icon, sauce?, k? (kebab stand)}
+  function startEating(food, facing) {
+    eating = { t: 0, bite: 0, from: new THREE.Vector3(), ...food };
+    (inside ? inside.scene : scene).add(eating.mesh);
+    player.face(facing);
+  }
+  function startKebab(k) {
     k.cooldown = 30; k.serving = 1.2;
-    eating = { t: 0, k, mesh: kebabMesh(), bite: 0, from: new THREE.Vector3() };
-    scene.add(eating.mesh);
-    player.face(k.group.position);
+    startEating({ k, mesh: kebabMesh(), source: (out) => k.handV.getWorldPosition(out), sober: 1.2, icon: "🥙", sauce: true }, k.group.position);
     toast(`🥙 ${pick(LINES.kebab)}`);
   }
   // a fixed shot from the side of the counter: the guy, the hand-over and you, all in frame
@@ -127,26 +131,26 @@ export async function startGame(autoplay = false) {
     shot.look.lerpVectors(p, k, 0.45).setY(1.6);
     return shot;
   }
-  function stopEating() { if (eating) { scene.remove(eating.mesh); eating = null; } }
-  // the guy hands it over, it flies to your hand, three bites with sauce, then it sobers you up
+  function stopEating() { if (eating) { eating.mesh.removeFromParent(); eating = null; } }
+  // it is handed over and flies to your hand, three bites (with sauce on a kebab), then it sobers you up
   function eat(dt) {
     const e = eating;
     e.t += dt;
     player.hand(handPos);
     if (e.t < 0.9) {
-      e.k.handV.getWorldPosition(e.from);
+      e.source(e.from);
       e.mesh.position.lerpVectors(e.from, handPos, Math.max(0, Math.min(1, (e.t - 0.35) / 0.55)));
     } else e.mesh.position.copy(handPos).add(face.set(0, 0.12, 0));
     e.mesh.rotation.y += dt * 2;
     if (e.bite < BITES.length && e.t >= BITES[e.bite]) {
       e.bite++;
       e.mesh.scale.multiplyScalar(0.72);
-      for (let i = 0; i < 3; i++) sauce.spray(handPos, face.set(0, -1, 0));
+      if (e.sauce) for (let i = 0; i < 3; i++) sauce.spray(handPos, face.set(0, -1, 0));
     }
     if (e.t >= KEBAB_TIME) {
       stopEating();
-      promil = Math.max(0, promil - 1.2);
-      toast("🥙 −1,2 ‰");
+      promil = Math.max(0, promil - e.sober);
+      toast(`${e.icon} −${String(e.sober).replace(".", ",")} ‰`);
     }
   }
 
@@ -222,6 +226,7 @@ export async function startGame(autoplay = false) {
       const res = inside.talk(target.npc);
       toast(res.text);
       if (res.promil) promil = Math.max(0, promil + res.promil);
+      if (res.food) startEating(res.food, res.food.source(new THREE.Vector3()));
       return;
     }
     if (target.kind === "exit") {
@@ -230,7 +235,7 @@ export async function startGame(autoplay = false) {
       toast(pick(LINES.exit));
     } else if (target.kind === "kebab") {
       player.root.position.copy(target.kebab.front);  // step up to the counter
-      startEating(target.kebab);
+      startKebab(target.kebab);
     } else {
       driving.enter(target.car);
       player.root.visible = false;
@@ -317,6 +322,7 @@ export async function startGame(autoplay = false) {
       player.update(dt, move, drunk, t);
       inside.resolve(player.root.position, 0.45);
       inside.update(dt, t, drunk, player.root.position, { drink, toast });
+      if (eating) eat(dt);
       dist = 4.2;
     } else if (driving.car) {
       if (Math.abs(driving.speed) > (driving.car.spec.smash ? 1 : 4) && world.smashTree(driving.follow.root.position, driving.heading, 2)) {
@@ -338,7 +344,7 @@ export async function startGame(autoplay = false) {
       beers.update(dt, t, follow.root.position, reach, drink);
     }
 
-    const ev = fx.update(dt, t, drunk, follow, dist, eating && kebabShot());
+    const ev = fx.update(dt, t, drunk, follow, dist, eating?.k && kebabShot());
     if (ev === "blackout") {
       toast(pick(LINES.blackout));
       if (!driving.car && !inside) player.root.position.add(new THREE.Vector3((Math.random() - 0.5) * 8, 0, (Math.random() - 0.5) * 8));

@@ -59,12 +59,11 @@ export function createActor(gltf, { height = 1.8, colors } = {}) {
 
   return {
     root, body, bones, mixer,
-    // hang an object on a bone at its real size (the armatures carry their own scale, e.g. ×100)
+    // hang an object on a bone so it moves with it; obj is placed in actor space (metres, rest pose)
     attach(boneName, obj) {
-      const bone = bones[boneName];
+      root.add(obj);
       root.updateMatrixWorld(true);
-      obj.scale.divideScalar(bone.getWorldScale(new THREE.Vector3()).x);
-      bone.add(obj);
+      bones[boneName].attach(obj);
     },
     has: (name) => !!clips[name],
     play(name, { fade = 0.25, once = false, speed = 1 } = {}) {

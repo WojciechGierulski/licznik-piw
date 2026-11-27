@@ -5,13 +5,6 @@ import { createActor } from "./actor.js";
 export function createPlayer(scene, assets) {
   const actor = createActor(assets.man, { height: 1.85, colors: { Shirt: 0x24459a, Pants: 0x1b2440, Socks: 0xf2f2f2 } });
   const { root, body, bones } = actor;
-  // a bottle always in the right hand
-  const glass = new THREE.MeshStandardMaterial({ color: 0x5b3a12, roughness: 0.15, transparent: true, opacity: 0.9 });
-  const bottle = new THREE.Group();
-  const bb = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.06, 0.22, 12), glass);
-  const bn = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.05, 0.12, 10), glass); bn.position.y = 0.17;
-  bottle.add(bb, bn);
-  actor.attach("PalmR", bottle);
   scene.add(root);
   actor.play("Idle");
 
