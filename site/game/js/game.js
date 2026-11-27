@@ -9,6 +9,7 @@ import { createInput } from "./input.js";
 import { createDriving } from "./car.js";
 import { createVomit } from "./vomit.js";
 import { createInteriors, ROOM_TYPES } from "./interiors.js";
+import { loadAssets } from "./actor.js";
 
 const GOAL = 10;          // ‰ for the win
 const DECAY = 0.006;      // ‰ the body burns per second, so you can't stop drinking
@@ -69,7 +70,8 @@ function graveTexture(lines) {
   return t;
 }
 
-export function startGame(autoplay = false) {
+export async function startGame(autoplay = false) {
+  const assets = await loadAssets();  // ~2.5 MB of CC0 models, only when someone wants to play
   const wrap = $("gameWrap"), canvas = $("gameCanvas");
   // phones get a lighter picture: no shadows, lower resolution
   const phone = window.matchMedia("(pointer: coarse)").matches;
@@ -84,14 +86,14 @@ export function startGame(autoplay = false) {
   scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
   scene.environmentIntensity = 0.18;
   const camera = new THREE.PerspectiveCamera(62, 16 / 9, 0.1, 400);
-  const world = buildWorld(scene);
-  const player = createPlayer(scene);
+  const world = buildWorld(scene, assets);
+  const player = createPlayer(scene, assets);
   const beers = createBeers(scene, world);
   const fx = createDrunkFx(renderer, scene, camera);
   const input = createInput(wrap, $("gJoy"), $("gUse"));
   const driving = createDriving(world);
   const vomit = createVomit(scene);
-  const interiors = createInteriors();
+  const interiors = createInteriors(assets);
   // the four doors closest to the start lead to four different places, the rest repeat them
   [...world.doors].sort((a, b) => a.pos.length() - b.pos.length()).forEach((d, i) => { d.type = ROOM_TYPES[i % ROOM_TYPES.length]; });
   let inside = null, insideDoor = null;
@@ -208,7 +210,7 @@ export function startGame(autoplay = false) {
     if (inside) return inside.target(player.root.position);
     if (driving.car) return { kind: "exit" };
     const pos = player.root.position, car = nearestCar(), kebab = world.kebabAt(pos, USE_RANGE);
-    const door = world.doors.find((d) => d.pos.distanceTo(pos) < 2.5);
+    const door = world.doors.find((d) => d.pos.distanceTo(pos) < 3.5);
     if (door) return { kind: "door", door };
     if (kebab && (!car || kebab.front.distanceTo(pos) < car.group.position.distanceTo(pos))) return { kind: "kebab", kebab };
     return car ? { kind: "car", car } : null;

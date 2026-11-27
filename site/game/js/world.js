@@ -1,13 +1,14 @@
 // The night-time estate: blocks of flats with balconies, streets, lamps, parked cars, a 24h shop and a starry sky.
 import * as THREE from "three";
+import { createActor, createCarBody } from "./actor.js";
 
 // stealable cars: top speed (m/s), how fast they get there, grip (lower = more drift), steering
 export const CAR_TYPES = [
-  { id: "maluch", name: "Maluch", acc: "Malucha", top: 14, accel: 1.0, grip: 9, turn: 1.9, size: [1.45, 1.35, 3.1], colors: [0xd9c11c, 0x9b1c1c, 0x2a5a9a] },
-  { id: "polonez", name: "Polonez", acc: "Poloneza", top: 22, accel: 1.5, grip: 8, turn: 1.6, size: [1.75, 1.4, 4.3], colors: [0x8a1c1c, 0x6b5a2f, 0x2f6b3a] },
-  { id: "kombi", name: "Kombi diesel", acc: "kombi diesla", top: 30, accel: 2.1, grip: 8.5, turn: 1.45, size: [1.85, 1.5, 4.7], wagon: true, colors: [0x222222, 0xb7b7b2, 0x1c3f8a] },
-  { id: "strzala", name: "Bawarska strzała", acc: "bawarską strzałę", top: 40, accel: 3.0, grip: 5.5, turn: 1.75, size: [1.8, 1.3, 4.4], spoiler: true, colors: [0xd9d4c7, 0x111111, 0x5a1a6a] },
-  { id: "zuk", name: "Żuk", acc: "Żuka", top: 15, accel: 0.8, grip: 9, turn: 1.3, size: [2, 2.3, 4.9], van: true, smash: true, colors: [0x4a6b3a, 0xa8a89a] },
+  { id: "maluch", name: "Maluch", acc: "Malucha", top: 14, accel: 1.0, grip: 9, turn: 1.9, size: [1.6, 1.4, 3.4], model: "hatchback", colors: [0] },
+  { id: "polonez", name: "Polonez", acc: "Poloneza", top: 22, accel: 1.5, grip: 8, turn: 1.6, size: [1.8, 1.4, 4.3], model: "sedan", paint: "Blue", colors: [0x8a1c1c, 0x6b5a2f, 0x2f6b3a] },
+  { id: "kombi", name: "Kombi diesel", acc: "kombi diesla", top: 30, accel: 2.1, grip: 8.5, turn: 1.45, size: [1.85, 1.5, 4.7], model: "wagon", colors: [0] },
+  { id: "strzala", name: "Bawarska strzała", acc: "bawarską strzałę", top: 40, accel: 3.0, grip: 5.5, turn: 1.75, size: [1.9, 1.25, 4.3], model: "sports", paint: "White", colors: [0xd9d4c7, 0x111111, 0x5a1a6a] },
+  { id: "zuk", name: "Żuk", acc: "Żuka", top: 15, accel: 0.8, grip: 9, turn: 1.3, size: [2.1, 2, 5], model: "pickup", smash: true, colors: [0] },
 ];
 export const HALF = 105;  // the playable area is a square of ±HALF metres
 const GRID = 30;          // distance between street axes
@@ -105,7 +106,7 @@ function skyDome(scene) {
   return clouds;
 }
 
-export function buildWorld(scene) {
+export function buildWorld(scene, assets) {
   scene.background = new THREE.Color(0x120d18);
   scene.fog = new THREE.FogExp2(0x1a1220, 0.017);
   const clouds = skyDome(scene);
@@ -256,36 +257,10 @@ export function buildWorld(scene) {
   });
 
   // parked cars along the streets; any of them can be stolen
-  const glass = std({ color: 0x0c1218, roughness: 0.08, metalness: 0.8 }), tyre = std({ color: 0x111111 }), chrome = std({ color: 0x9a9a9a, roughness: 0.25, metalness: 0.9 });
-  const headlightMat = new THREE.MeshStandardMaterial({ color: 0xfff6d8, emissive: 0xfff0c0, emissiveIntensity: 1.2 });
-  const tailMat = new THREE.MeshStandardMaterial({ color: 0x5a0000, emissive: 0xff1a1a, emissiveIntensity: 0.8 });
   const cars = [];
   const parkCar = (x, z, alongX, spec, color) => {
     const car = new THREE.Group();
-    const [W, H, L] = spec.size, wheelR = spec.id === "maluch" ? 0.28 : 0.36;
-    const paint = std({ color, roughness: 0.3, metalness: 0.55 });
-    const box = (w, h, d, m, px, py, pz) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(px, py, pz); car.add(b); return b; };
-    if (spec.van) {  // a tall delivery van: one big box with a windscreen
-      box(W, H - 0.45, L, paint, 0, 0.45 + (H - 0.45) / 2, 0);
-      box(W - 0.1, 0.6, 0.05, glass, 0, H - 0.55, L / 2 + 0.01);
-    } else {
-      box(W, 0.6, L, paint, 0, 0.6, 0);
-      const hood = box(W - 0.04, 0.18, L * 0.3, paint, 0, 0.98, L * 0.33); hood.rotation.x = -0.12;
-      const cabinL = spec.wagon ? L * 0.62 : L * 0.49, cabinZ = spec.wagon ? -L * 0.12 : -L * 0.06;
-      box(W - 0.18, H - 0.73, cabinL, glass, 0, 0.9 + (H - 0.73) / 2, cabinZ);
-      box(W - 0.16, 0.08, cabinL - 0.3, paint, 0, H - 0.05, cabinZ);
-      if (spec.spoiler) box(W - 0.2, 0.06, 0.35, paint, 0, 1.15, -L / 2 + 0.2);
-    }
-    box(W + 0.04, 0.2, 0.15, chrome, 0, 0.4, L / 2 + 0.05);
-    box(W + 0.04, 0.2, 0.15, chrome, 0, 0.4, -L / 2 - 0.05);
-    for (const lx of [-W * 0.34, W * 0.34]) {
-      box(0.36, 0.16, 0.05, headlightMat, lx, 0.72, L / 2 + 0.04);
-      box(0.36, 0.14, 0.05, tailMat, lx, 0.72, -L / 2 - 0.04);
-    }
-    for (const [wx, wz] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) {
-      const wh = new THREE.Mesh(new THREE.CylinderGeometry(wheelR, wheelR, 0.26, 16), tyre);
-      wh.rotation.z = Math.PI / 2; wh.position.set(wx * (W / 2 - 0.05), wheelR, wz * (L / 2 - 0.8)); car.add(wh);
-    }
+    car.add(createCarBody(assets[spec.model], { length: spec.size[2], paint: spec.paint, color, flip: spec.flip }));
     car.traverse((m) => { m.castShadow = true; });
     car.position.set(x, 0, z); car.rotation.y = alongX ? Math.PI / 2 : 0;
     scene.add(car);
@@ -369,30 +344,19 @@ export function buildWorld(scene) {
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 0.95), new THREE.MeshStandardMaterial({ map: kebabSign, emissiveMap: kebabSign, emissive: 0xffffff, emissiveIntensity: 0.8 }));
     sign.position.set(0, 4.05, 1.6);
     const spit = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.26, 0.8, 10), std({ color: 0x9a5a2a, roughness: 0.6 })); spit.position.set(-1.1, 1.6, 0.3);
-    // the kebab guy behind the counter: apron, cap, moustache, knife
-    const vendor = new THREE.Group(); vendor.position.set(0.5, 0, 0.6);
-    const skinV = std({ color: 0xc99572, roughness: 0.6 }), apron = std({ color: 0xf2efe6 }), darkV = std({ color: 0x1c1712 });
-    const torsoV = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 0.5, 6, 12), apron); torsoV.position.y = 1.4; torsoV.scale.z = 0.7;
-    const headV = new THREE.Mesh(new THREE.SphereGeometry(0.22, 18, 14), skinV); headV.position.y = 2.05;
-    const capV = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.16, 16), apron); capV.position.y = 2.25;
-    const stache = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.05, 0.05), darkV); stache.position.set(0, 1.99, 0.21);
-    const eyes = [-0.07, 0.07].map((x) => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), darkV); e.position.set(x, 2.09, 0.2); return e; });
-    const armV = new THREE.Group(); armV.position.set(-0.38, 1.7, 0);  // the serving arm
-    const armMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.5, 4, 8), apron); armMesh.position.y = -0.33;
-    const handV = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), skinV); handV.position.y = -0.68;
-    armV.add(armMesh, handV);
-    const knifeArm = new THREE.Group(); knifeArm.position.set(0.38, 1.7, 0);
-    const knifeArmMesh = armMesh.clone(); const knife = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.3, 0.02), std({ color: 0xcfd2d6, metalness: 0.8, roughness: 0.3 }));
-    knife.position.y = -0.85; knifeArm.add(knifeArmMesh, knife);
-    vendor.add(torsoV, headV, capV, stache, ...eyes, armV, knifeArm);
-    k.add(...shell, roof, lampIn, sign, spit, vendor);
+    // the kebab guy behind the counter, slicing meat until someone orders
+    const vendor = createActor(assets.man, { height: 1.78, colors: { Shirt: 0xf2efe6, Pants: 0x2b2b2b, Hair: 0x111111 } });
+    vendor.root.position.set(0.5, 0, 0.55);
+    vendor.play("Idle");
+    const handV = vendor.bones["PalmR"];
+    k.add(...shell, roof, lampIn, sign, spit, vendor.root);
     k.traverse((m) => { if (m.isMesh) m.castShadow = true; });
     k.position.set(x, 0, z); k.rotation.y = rot;
     scene.add(k);
     const hw = Math.abs(Math.cos(rot)) * 2.1 + Math.abs(Math.sin(rot)) * 1.7, hd = Math.abs(Math.sin(rot)) * 2.1 + Math.abs(Math.cos(rot)) * 1.7;
     colliders.push({ minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd });
     const front = new THREE.Vector3(0, 0, 2.8).applyAxisAngle(new THREE.Vector3(0, 1, 0), rot).add(k.position);
-    kebabs.push({ group: k, front, cooldown: 0, serving: 0, armV, knifeArm, handV, vendor });
+    kebabs.push({ group: k, front, cooldown: 0, serving: 0, handV, vendor });
   }
 
   const blocked = (x, z, margin) => colliders.some((c) => x > c.minX - margin && x < c.maxX + margin && z > c.minZ - margin && z < c.maxZ + margin);
@@ -410,12 +374,9 @@ export function buildWorld(scene) {
       for (const k of kebabs) {
         k.cooldown = Math.max(0, k.cooldown - dt);
         k.serving = Math.max(0, k.serving - dt);
-        const t = performance.now() / 1000;
-        // serving: the arm reaches over the counter; otherwise he keeps slicing meat off the spit
-        const reach = k.serving > 0 ? Math.min(1, (1.2 - k.serving) * 4, k.serving * 3) : 0;
-        k.armV.rotation.x = -reach * 1.5;
-        k.knifeArm.rotation.x = -0.6 + Math.sin(t * 6) * 0.35 * (1 - reach);
-        k.vendor.position.y = Math.abs(Math.sin(t * 2)) * 0.03;
+        // serving: a quick reach over the counter; otherwise he keeps slicing meat off the spit
+        k.vendor.play(k.serving > 0 ? "Punch" : "Idle", { speed: k.serving > 0 ? 0.7 : 1 });
+        k.vendor.update(dt);
       }
       nearest.length = 0;
       for (const l of lamps) nearest.push([l.userData.spot.distanceToSquared(pos), l]);

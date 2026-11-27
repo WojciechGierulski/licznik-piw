@@ -57,7 +57,7 @@ function makeRoom(scene, bounds, extras) {
 }
 
 // ------------------------------------------------------------------ the stairwell
-function stairwell() {
+function stairwell(assets) {
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0x101010);
   const w = 9, d = 12, h = 5.5;
   const wallTex = canvasTex(512, 512, (g, W, H) => {
@@ -94,7 +94,7 @@ function stairwell() {
   const box = std({ color: 0x6b6f3a, metalness: 0.3 });
   for (let i = 0; i < 12; i++) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.28, 0.32), box); m.position.set(-4.45, 1.2 + Math.floor(i / 4) * 0.32, -3.6 + (i % 4) * 0.36); scene.add(m); }
   // the neighbour
-  const n = createPerson({ top: 0xb0476b, bottom: 0xf0d9c4, robe: true, hair: 0x6b6b6b });
+  const n = createPerson(assets, "man", { Shirt: 0xb0476b, Pants: 0xc98aa0, Hair: 0x6b6b6b });  // pink bathrobe vibes
   n.root.position.set(-2.6, 0, 3.2); n.root.rotation.y = Math.PI; scene.add(n.root);
   r.colliders.push({ minX: -3, maxX: -2.2, minZ: 2.8, maxZ: 3.6 });
   r.npcs.push({ person: n, label: "pogadaj z sąsiadem", icon: "💬", lines: [
@@ -108,7 +108,7 @@ function stairwell() {
 }
 
 // ------------------------------------------------------------------ the party flat
-function party() {
+function party(assets) {
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0a0a10);
   const w = 10, d = 9, h = 2.8;
   const paper = tiled((g, W, H) => {
@@ -137,10 +137,11 @@ function party() {
   const lamps = [new THREE.PointLight(0xff3aa8, 22, 12, 1.4), new THREE.PointLight(0x35d6ff, 22, 12, 1.4)];
   lamps.forEach((l) => scene.add(l));
   // the crowd
-  const looks = [{ top: 0xd94848, hair: 0x2a1a0e }, { top: 0x3aa35b, hair: 0xd9b25a, bun: true }, { top: 0xf0c419, hair: 0x111111 }, { top: 0x8a4bd1, hair: 0x7a3b1b }];
+  const looks = [["man", { Shirt: 0xd94848, Hair: 0x2a1a0e }], ["woman", { Shirt: 0x3aa35b, LightJacket: 0x2d7d46, Hair: 0xd9b25a }],
+    ["man", { Shirt: 0xf0c419, Pants: 0x2a3a6b, Hair: 0x111111 }], ["woman", { Shirt: 0x8a4bd1, Jacket: 0x5e2f99, Hair: 0x7a3b1b }]];
   const spots = [[-2, 2.5], [-0.5, 3.4], [0.6, 2.6], [-1.4, 0.5]];
-  looks.forEach((look, i) => {
-    const p = createPerson(look); p.root.position.set(spots[i][0], 0, spots[i][1]); p.root.rotation.y = Math.random() * 6; scene.add(p.root);
+  looks.forEach(([kind, colors], i) => {
+    const p = createPerson(assets, kind, colors); p.root.position.set(spots[i][0], 0, spots[i][1]); p.root.rotation.y = Math.random() * 6; scene.add(p.root);
     r.colliders.push({ minX: spots[i][0] - 0.35, maxX: spots[i][0] + 0.35, minZ: spots[i][1] - 0.35, maxZ: spots[i][1] + 0.35 });
     r.npcs.push({ person: p, dancer: true, phase: i * 1.7, label: "zagadaj", icon: "💬", lines: [
       "Ty, a ty kto jesteś? Chuj z tym, wchodź.", "Ziomal, rozlałeś mi browara na buty. Polej, to wybaczę.",
@@ -158,7 +159,7 @@ function party() {
 }
 
 // ------------------------------------------------------------------ the cellar
-function cellar() {
+function cellar(assets) {
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0x020202);
   const w = 9, d = 8, h = 2.3;
   const concrete = tiled((g, W, H) => noise(g, W, H, "#4d4b47", 0.3, 25000, 2), 3, 2);
@@ -212,7 +213,7 @@ function cellar() {
 }
 
 // ------------------------------------------------------------------ grandma's flat
-function grandma() {
+function grandma(assets) {
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0a0806);
   const w = 8, d = 7, h = 2.6;
   const flowers = tiled((g, W, H) => {
@@ -246,8 +247,8 @@ function grandma() {
   const chair = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.5, 1), std({ color: 0x5a6b3a })); chair.position.set(2.3, 0.25, 0.8);
   const back = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.9, 0.25), chair.material); back.position.set(2.3, 0.9, 1.25);
   scene.add(back); r.solid(chair, 1.1, 1);
-  const gm = createPerson({ top: 0x6b4c8a, bottom: 0x3a3030, hair: 0xd8d8d8, bun: true, glasses: true, skin: 0xe8c0a0 });
-  gm.sit(); gm.root.position.set(2.3, 0.05, 0.75); gm.root.rotation.y = Math.PI; scene.add(gm.root);
+  const gm = createPerson(assets, "woman", { Shirt: 0x6b4c8a, LightJacket: 0x7d5a9e, Jacket: 0x5a3f73, Pants: 0x3a3030, Hair: 0xdedede, HairBase: 0xdedede });
+  gm.root.position.set(2.3, 0, 0.85); gm.root.rotation.y = Math.PI; scene.add(gm.root);
   const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.18, 0.03, 18), std({ color: 0xf4f4f4, roughness: 0.3 })); plate.position.set(1.2, 0.62, -0.2);
   const stool = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), brown); stool.position.set(1.2, 0.3, -0.2);
   scene.add(plate); r.solid(stool, 0.6, 0.6);
@@ -266,11 +267,11 @@ function grandma() {
 export const ROOM_TYPES = ["stairwell", "party", "cellar", "grandma"];
 const BUILD = { stairwell, party, cellar, grandma };
 
-export function createInteriors() {
+export function createInteriors(assets) {
   const rooms = {};
   const get = (type) => {
     if (rooms[type]) return rooms[type];
-    const r = BUILD[type]();
+    const r = BUILD[type](assets);
     r.type = type;
     // push the player out of furniture and keep them inside the walls
     r.resolve = (pos, rad) => {
@@ -300,8 +301,9 @@ export function createInteriors() {
         }
       }
       for (const n of r.npcs) {
-        if (n.dancer) n.person.dance(t, d, n.phase);
-        else if (!n.sitting) n.person.idle(t);
+        if (n.dancer) n.person.dance(dt, t, d, n.phase);
+        else if (n.sitting) n.person.sit(dt);
+        else n.person.idle(dt);
         // people turn to look at you when you're close
         if (!n.dancer && n.person.root.position.distanceTo(pos) < 4) {
           const want = Math.atan2(pos.x - n.person.root.position.x, pos.z - n.person.root.position.z);
