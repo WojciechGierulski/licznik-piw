@@ -25,10 +25,10 @@ export function createVomit(scene, color = 0x9bbf2a, glow = 0x3d5a00) {
         d.life = 1.2; d.m.visible = true;
       }
     },
-    puddle(at) {
+    puddle(at, y = 0.2) {
       let p = puddles[pi];
       if (!p) { p = new THREE.Mesh(new THREE.CircleGeometry(0.7, 18), puddleMat); p.rotation.x = -Math.PI / 2; scene.add(p); puddles[pi] = p; }
-      p.position.set(at.x, 0.2, at.z); p.scale.set(0.8 + Math.random() * 0.6, 0.6 + Math.random() * 0.5, 1);
+      p.position.set(at.x, y, at.z); p.scale.set(0.8 + Math.random() * 0.6, 0.6 + Math.random() * 0.5, 1);
       pi = (pi + 1) % PUDDLES;
     },
     update(dt) {
@@ -40,6 +40,8 @@ export function createVomit(scene, color = 0x9bbf2a, glow = 0x3d5a00) {
         if (d.m.position.y < 0.2 || d.life <= 0) { d.life = 0; d.m.visible = false; }
       }
     },
+    // follow the player into a building and back out
+    moveTo(target) { drops.forEach((d) => target.add(d.m)); puddles.forEach((p) => { target.add(p); p.position.set(0, -10, 0); }); scene = target; },
     clear() { drops.forEach((d) => { d.life = 0; d.m.visible = false; }); puddles.forEach((p) => p.position.set(0, -10, 0)); },
   };
 }

@@ -29,13 +29,14 @@ export function createDriving(world) {
       swerve += ((Math.sin(t * 0.9) + Math.sin(t * 2.3 + 2) * 0.6) - swerve) * dt * 1.5;
       steer += (move.turn - steer) * Math.min(1, dt * (6 - d * 4.5));
       const gas = move.fwd;
-      const target = gas > 0 ? gas * (22 + d * 10) : gas * 8;
-      speed += (target - speed) * Math.min(1, dt * (gas === 0 ? 0.8 : 1.6));
+      const spec = car.spec;
+      const target = gas > 0 ? gas * (spec.top + d * 8) : gas * 8;
+      speed += (target - speed) * Math.min(1, dt * (gas === 0 ? 0.8 : spec.accel));
       const traction = Math.min(1, Math.abs(speed) / 6);
-      heading += (steer * (1.6 + d * 0.6) + swerve * d * 1.3) * traction * Math.sign(speed || 1) * dt;
+      heading += (steer * (spec.turn + d * 0.6) + swerve * d * 1.3) * traction * Math.sign(speed || 1) * dt;
       forward.set(Math.sin(heading), 0, Math.cos(heading));
       // drift: the direction of travel catches up with the bonnet slower the drunker you are
-      const grip = 8 - d * 6.8;
+      const grip = Math.max(1, spec.grip - d * 6.8);
       wanted.copy(forward).multiplyScalar(speed);
       velocity.lerp(wanted, Math.min(1, dt * grip));
       const pos = car.group.position;

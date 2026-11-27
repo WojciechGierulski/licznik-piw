@@ -450,6 +450,8 @@ footer a { color: var(--ink-2); }
 .g-joy i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(255, 255, 255, .45); }
 .g-hint { position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%); color: #fff; font-size: 15px; background: rgba(0, 0, 0, .55); padding: 7px 14px; border-radius: 999px; pointer-events: none; }
 .g-hint[hidden], .g-use[hidden] { display: none; }
+.g-fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .25s; }
+.g-fade.on { opacity: 1; }
 .g-hint kbd { font: inherit; font-weight: 800; background: #ffcf57; color: #2a1a05; border-radius: 6px; padding: 0 7px; margin-right: 4px; }
 .g-use { position: absolute; right: 22px; bottom: 30px; width: 74px; height: 74px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .4); background: rgba(0, 0, 0, .45); font-size: 34px; cursor: pointer; display: none; }
 @media (pointer: coarse) { .g-use:not([hidden]) { display: block; } .g-hint { display: none; } }

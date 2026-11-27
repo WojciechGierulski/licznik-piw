@@ -1,11 +1,19 @@
 // The night-time estate: blocks of flats with balconies, streets, lamps, parked cars, a 24h shop and a starry sky.
 import * as THREE from "three";
 
+// stealable cars: top speed (m/s), how fast they get there, grip (lower = more drift), steering
+export const CAR_TYPES = [
+  { id: "maluch", name: "Maluch", acc: "Malucha", top: 14, accel: 1.0, grip: 9, turn: 1.9, size: [1.45, 1.35, 3.1], colors: [0xd9c11c, 0x9b1c1c, 0x2a5a9a] },
+  { id: "polonez", name: "Polonez", acc: "Poloneza", top: 22, accel: 1.5, grip: 8, turn: 1.6, size: [1.75, 1.4, 4.3], colors: [0x8a1c1c, 0x6b5a2f, 0x2f6b3a] },
+  { id: "kombi", name: "Kombi diesel", acc: "kombi diesla", top: 30, accel: 2.1, grip: 8.5, turn: 1.45, size: [1.85, 1.5, 4.7], wagon: true, colors: [0x222222, 0xb7b7b2, 0x1c3f8a] },
+  { id: "strzala", name: "Bawarska strzała", acc: "bawarską strzałę", top: 40, accel: 3.0, grip: 5.5, turn: 1.75, size: [1.8, 1.3, 4.4], spoiler: true, colors: [0xd9d4c7, 0x111111, 0x5a1a6a] },
+  { id: "zuk", name: "Żuk", acc: "Żuka", top: 15, accel: 0.8, grip: 9, turn: 1.3, size: [2, 2.3, 4.9], van: true, smash: true, colors: [0x4a6b3a, 0xa8a89a] },
+];
 export const HALF = 105;  // the playable area is a square of ±HALF metres
 const GRID = 30;          // distance between street axes
 const LAMP_LIGHTS = 6;    // real lights follow the lamps nearest to the player
 
-const canvasTex = (w, h, draw, repeat = [1, 1], color = true) => {
+export const canvasTex = (w, h, draw, repeat = [1, 1], color = true) => {
   const c = document.createElement("canvas"); c.width = w; c.height = h;
   draw(c.getContext("2d"), w, h);
   const t = new THREE.CanvasTexture(c);
@@ -14,7 +22,7 @@ const canvasTex = (w, h, draw, repeat = [1, 1], color = true) => {
   if (color) t.colorSpace = THREE.SRGBColorSpace;
   return t;
 };
-const noise = (g, w, h, base, spread, n = 9000, size = 2) => {
+export const noise = (g, w, h, base, spread, n = 9000, size = 2) => {
   g.fillStyle = base; g.fillRect(0, 0, w, h);
   for (let i = 0; i < n; i++) {
     const v = Math.random() * spread - spread / 2;
@@ -72,12 +80,35 @@ function skyDome(scene) {
   const moon = new THREE.Mesh(new THREE.SphereGeometry(6, 24, 16), new THREE.MeshBasicMaterial({ color: 0xfff4d6, fog: false }));
   moon.position.set(-90, 110, 70);
   scene.add(moon);
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: canvasTex(128, 128, (g) => {
+    const r = g.createRadialGradient(64, 64, 10, 64, 64, 64);
+    r.addColorStop(0, "rgba(255,240,200,0.55)"); r.addColorStop(1, "rgba(255,240,200,0)");
+    g.fillStyle = r; g.fillRect(0, 0, 128, 128);
+  }), transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending }));
+  halo.scale.set(48, 48, 1); halo.position.copy(moon.position);
+  scene.add(halo);
+  // a few slow clouds lit by the city from below
+  const cloudTex = canvasTex(256, 128, (g) => {
+    for (let i = 0; i < 26; i++) {
+      const x = 30 + Math.random() * 196, y = 40 + Math.random() * 50, r0 = 18 + Math.random() * 26;
+      const r = g.createRadialGradient(x, y, 0, x, y, r0);
+      r.addColorStop(0, "rgba(120,95,110,0.35)"); r.addColorStop(1, "rgba(120,95,110,0)");
+      g.fillStyle = r; g.fillRect(0, 0, 256, 128);
+    }
+  });
+  const clouds = [];
+  for (let i = 0; i < 9; i++) {
+    const c = new THREE.Mesh(new THREE.PlaneGeometry(120, 60), new THREE.MeshBasicMaterial({ map: cloudTex, transparent: true, depthWrite: false, fog: false }));
+    c.rotation.x = Math.PI / 2; c.position.set((Math.random() - 0.5) * 300, 85 + Math.random() * 20, (Math.random() - 0.5) * 300);
+    scene.add(c); clouds.push(c);
+  }
+  return clouds;
 }
 
 export function buildWorld(scene) {
   scene.background = new THREE.Color(0x120d18);
   scene.fog = new THREE.FogExp2(0x1a1220, 0.017);
-  skyDome(scene);
+  const clouds = skyDome(scene);
   scene.add(new THREE.HemisphereLight(0x6070a8, 0x2a2016, 0.9));
   const moon = new THREE.DirectionalLight(0xaab8ff, 1.2);
   moon.position.set(-30, 50, 25);
@@ -105,6 +136,16 @@ export function buildWorld(scene) {
     const lawn = new THREE.Mesh(new THREE.BoxGeometry(21, 0.16, 21), grass); lawn.position.set(x, 0.08, z); lawn.receiveShadow = true;
     scene.add(edge, side, lawn);
   }
+  // grass tufts: thousands of tiny blades, drawn in one go
+  const TUFTS = 7000;
+  const tufts = new THREE.InstancedMesh(new THREE.ConeGeometry(0.035, 0.2, 3), std({ color: 0x4a8a3c }), TUFTS);
+  const tm = new THREE.Matrix4(), ts = new THREE.Vector3(), tq = new THREE.Quaternion(), tp = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  for (let i = 0; i < TUFTS; i++) {
+    const sx = (Math.floor(Math.random() * 7) - 3) * GRID + (Math.random() - 0.5) * 20, sz = (Math.floor(Math.random() * 7) - 3) * GRID + (Math.random() - 0.5) * 20;
+    const k = 0.6 + Math.random() * 0.9;
+    tufts.setMatrixAt(i, tm.compose(tp.set(sx, 0.16 + 0.1 * k, sz), tq.setFromAxisAngle(up, Math.random() * 3), ts.set(k, k, k)));
+  }
+  scene.add(tufts);
   // dashed lane markings
   const dash = new THREE.InstancedMesh(new THREE.BoxGeometry(0.15, 0.02, 1.6), new THREE.MeshBasicMaterial({ color: 0xbdbdb0 }), 2 * 7 * 14);
   const m4 = new THREE.Matrix4(); let di = 0;
@@ -124,7 +165,10 @@ export function buildWorld(scene) {
 
   // blocks of flats with balconies (the middle squares stay free: that's where you start)
   const balconyGeo = new THREE.BoxGeometry(2.4, 1.1, 1.1), balconyMat = std({ color: 0x9b9892 });
-  const balconies = [];
+  const balconies = [], doors = [], dishes = [];
+  const doorMat = std({ color: 0x4a3a2a, roughness: 0.5 }), canopyMat = std({ color: 0x6b6f75, metalness: 0.4, roughness: 0.5 });
+  const entranceLight = new THREE.MeshStandardMaterial({ color: 0xfff1c9, emissive: 0xffd48a, emissiveIntensity: 3 });
+  let klatka = 0;
   for (let gx = -3; gx <= 3; gx++) for (let gz = -3; gz <= 3; gz++) {
     if ((Math.abs(gx) <= 1 && Math.abs(gz) <= 1 && !(gx === 1 && gz === 1)) || Math.random() < 0.12) continue;
     const cols = 4 + Math.floor(Math.random() * 4), floors = 4 + Math.floor(Math.random() * 8);
@@ -141,7 +185,24 @@ export function buildWorld(scene) {
       if (Math.random() < 0.45) continue;
       for (const face of [1, -1]) balconies.push([x - w / 2 + 1.3 + c * 2.6, f * 2.8 + 0.2, z + face * (d / 2 + 0.55)]);
     }
+    for (let i = 0; i < 3; i++) dishes.push([x - w / 2 + 1 + Math.random() * (w - 2), 3 + Math.random() * (h - 4), z + (Math.random() < 0.5 ? 1 : -1) * (d / 2 + 0.25)]);
+    // the entrance faces the middle of the estate: a door, a canopy with a light, and the staircase letter
+    const face = z > 0 ? -1 : 1, fz = z + face * (d / 2);
+    const door = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.3, 0.1), doorMat); door.position.set(x, 1.15, fz + face * 0.05);
+    const canopy = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.12, 1.4), canopyMat); canopy.position.set(x, 2.7, fz + face * 0.7); canopy.castShadow = true;
+    const bulb = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.05, 0.2), entranceLight); bulb.position.set(x, 2.62, fz + face * 0.5);
+    const letter = String.fromCharCode(65 + (klatka++ % 26));
+    const plate = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.3), std({ map: canvasTex(128, 64, (g) => {
+      g.fillStyle = "#1d3f8a"; g.fillRect(0, 0, 128, 64); g.fillStyle = "#fff"; g.font = "bold 30px system-ui"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(`Klatka ${letter}`, 64, 34);
+    }) }));
+    plate.position.set(x + 1.2, 2.2, fz + face * 0.03); plate.rotation.y = face > 0 ? 0 : Math.PI;
+    scene.add(door, canopy, bulb, plate);
+    doors.push({ pos: new THREE.Vector3(x, 0, fz + face * 1.4), face, letter });
   }
+  // satellite dishes, one draw call for all of them
+  const dish = new THREE.InstancedMesh(new THREE.SphereGeometry(0.35, 12, 6, 0, Math.PI * 2, 0, Math.PI / 3), std({ color: 0xd8d8d2, metalness: 0.3, roughness: 0.4, side: THREE.DoubleSide }), dishes.length);
+  dishes.forEach(([x, y, z], i) => dish.setMatrixAt(i, m4.makeRotationX(z > 0 ? Math.PI / 2 : -Math.PI / 2).setPosition(x, y, z)));
+  scene.add(dish);
   const bal = new THREE.InstancedMesh(balconyGeo, balconyMat, balconies.length);
   balconies.forEach(([x, y, z], i) => bal.setMatrixAt(i, m4.makeTranslation(x, y, z)));
   bal.castShadow = bal.receiveShadow = true;
@@ -195,50 +256,58 @@ export function buildWorld(scene) {
   });
 
   // parked cars along the streets; any of them can be stolen
-  const carColors = [0x8a1c1c, 0x1c3f8a, 0xb7b7b2, 0x222222, 0x2f6b3a, 0x6b5a2f, 0xd9d4c7];
   const glass = std({ color: 0x0c1218, roughness: 0.08, metalness: 0.8 }), tyre = std({ color: 0x111111 }), chrome = std({ color: 0x9a9a9a, roughness: 0.25, metalness: 0.9 });
   const headlightMat = new THREE.MeshStandardMaterial({ color: 0xfff6d8, emissive: 0xfff0c0, emissiveIntensity: 1.2 });
   const tailMat = new THREE.MeshStandardMaterial({ color: 0x5a0000, emissive: 0xff1a1a, emissiveIntensity: 0.8 });
   const cars = [];
-  const parkCar = (x, z, alongX, color) => {
+  const parkCar = (x, z, alongX, spec, color) => {
     const car = new THREE.Group();
+    const [W, H, L] = spec.size, wheelR = spec.id === "maluch" ? 0.28 : 0.36;
     const paint = std({ color, roughness: 0.3, metalness: 0.55 });
-    const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.6, 4.3), paint); body.position.y = 0.6;
-    const hood = new THREE.Mesh(new THREE.BoxGeometry(1.76, 0.18, 1.3), paint); hood.position.set(0, 0.98, 1.4); hood.rotation.x = -0.12;
-    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.62, 2.1), glass); cabin.position.set(0, 1.21, -0.25);
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(1.64, 0.08, 1.8), paint); roof.position.set(0, 1.55, -0.3);
-    const bumperF = new THREE.Mesh(new THREE.BoxGeometry(1.84, 0.2, 0.15), chrome); bumperF.position.set(0, 0.4, 2.17);
-    const bumperB = bumperF.clone(); bumperB.position.z = -2.17;
-    car.add(body, hood, cabin, roof, bumperF, bumperB);
-    for (const lx of [-0.62, 0.62]) {
-      const hl = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.16, 0.05), headlightMat); hl.position.set(lx, 0.72, 2.16);
-      const tl = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.14, 0.05), tailMat); tl.position.set(lx, 0.72, -2.16);
-      car.add(hl, tl);
+    const box = (w, h, d, m, px, py, pz) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(px, py, pz); car.add(b); return b; };
+    if (spec.van) {  // a tall delivery van: one big box with a windscreen
+      box(W, H - 0.45, L, paint, 0, 0.45 + (H - 0.45) / 2, 0);
+      box(W - 0.1, 0.6, 0.05, glass, 0, H - 0.55, L / 2 + 0.01);
+    } else {
+      box(W, 0.6, L, paint, 0, 0.6, 0);
+      const hood = box(W - 0.04, 0.18, L * 0.3, paint, 0, 0.98, L * 0.33); hood.rotation.x = -0.12;
+      const cabinL = spec.wagon ? L * 0.62 : L * 0.49, cabinZ = spec.wagon ? -L * 0.12 : -L * 0.06;
+      box(W - 0.18, H - 0.73, cabinL, glass, 0, 0.9 + (H - 0.73) / 2, cabinZ);
+      box(W - 0.16, 0.08, cabinL - 0.3, paint, 0, H - 0.05, cabinZ);
+      if (spec.spoiler) box(W - 0.2, 0.06, 0.35, paint, 0, 1.15, -L / 2 + 0.2);
     }
-    for (const [wx, wz] of [[-0.85, 1.35], [0.85, 1.35], [-0.85, -1.35], [0.85, -1.35]]) {
-      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.26, 16), tyre);
-      w.rotation.z = Math.PI / 2; w.position.set(wx, 0.36, wz); car.add(w);
+    box(W + 0.04, 0.2, 0.15, chrome, 0, 0.4, L / 2 + 0.05);
+    box(W + 0.04, 0.2, 0.15, chrome, 0, 0.4, -L / 2 - 0.05);
+    for (const lx of [-W * 0.34, W * 0.34]) {
+      box(0.36, 0.16, 0.05, headlightMat, lx, 0.72, L / 2 + 0.04);
+      box(0.36, 0.14, 0.05, tailMat, lx, 0.72, -L / 2 - 0.04);
+    }
+    for (const [wx, wz] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) {
+      const wh = new THREE.Mesh(new THREE.CylinderGeometry(wheelR, wheelR, 0.26, 16), tyre);
+      wh.rotation.z = Math.PI / 2; wh.position.set(wx * (W / 2 - 0.05), wheelR, wz * (L / 2 - 0.8)); car.add(wh);
     }
     car.traverse((m) => { m.castShadow = true; });
     car.position.set(x, 0, z); car.rotation.y = alongX ? Math.PI / 2 : 0;
     scene.add(car);
-    const entry = { group: car, collider: null };
+    const entry = { group: car, collider: null, spec };
     cars.push(entry);
     park(entry);
   };
   // a parked car blocks a box that fits its current rotation
   const park = (entry) => {
     const { x, z } = entry.group.position, a = entry.group.rotation.y;
-    const hw = Math.abs(Math.cos(a)) * 1 + Math.abs(Math.sin(a)) * 2.2, hd = Math.abs(Math.sin(a)) * 1 + Math.abs(Math.cos(a)) * 2.2;
+    const halfW = entry.spec.size[0] / 2 + 0.1, halfL = entry.spec.size[2] / 2 + 0.1;
+    const hw = Math.abs(Math.cos(a)) * halfW + Math.abs(Math.sin(a)) * halfL, hd = Math.abs(Math.sin(a)) * halfW + Math.abs(Math.cos(a)) * halfL;
     entry.collider = { minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd };
     colliders.push(entry.collider);
   };
-  parkCar(GRID / 2 + 2.3, 4, false, 0x8a1c1c);  // one right next to the start, so nobody misses it
+  parkCar(GRID / 2 + 2.3, 4, false, CAR_TYPES[1], 0x8a1c1c);  // a red Polonez right next to the start, so nobody misses it
   for (let i = 0; i < 24; i++) {
     const s = Math.floor(Math.random() * 7) - 3, along = (Math.random() - 0.5) * HALF * 1.8, alongX = Math.random() < 0.5;
     const axis = s * GRID + GRID / 2 + 2.3;
     const [x, z] = alongX ? [along, axis] : [axis, along];
-    parkCar(x, z, alongX, carColors[i % carColors.length]);
+    const spec = CAR_TYPES[i % CAR_TYPES.length];
+    parkCar(x, z, alongX, spec, spec.colors[i % spec.colors.length]);
   }
 
   // wet asphalt: a few puddles that mirror the lamps
@@ -337,6 +406,7 @@ export function buildWorld(scene) {
         t.fall = Math.min(1, t.fall + dt * 1.8);
         t.group.rotation.set(Math.cos(t.dir) * t.fall * 1.45, 0, -Math.sin(t.dir) * t.fall * 1.45);
       }
+      for (const c of clouds) { c.position.x += dt * 1.2; if (c.position.x > 160) c.position.x = -160; }
       for (const k of kebabs) {
         k.cooldown = Math.max(0, k.cooldown - dt);
         k.serving = Math.max(0, k.serving - dt);
@@ -355,6 +425,7 @@ export function buildWorld(scene) {
       moon.position.set(pos.x - 30, 50, pos.z + 25);
     },
     cars,
+    doors,
     // the nearest stand within r that is ready to serve
     kebabAt(pos, r) {
       let best = null;

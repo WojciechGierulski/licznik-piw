@@ -8,6 +8,7 @@ import { createDrunkFx } from "./drunk.js";
 import { createInput } from "./input.js";
 import { createDriving } from "./car.js";
 import { createVomit } from "./vomit.js";
+import { createInteriors, ROOM_TYPES } from "./interiors.js";
 
 const GOAL = 10;          // ‰ for the win
 const DECAY = 0.006;      // ‰ the body burns per second, so you can't stop drinking
@@ -16,19 +17,27 @@ const USE_RANGE = 6;      // E works (and the hint shows) this far from a car or
 const STAGES = [
   [2, "Świat się buja. To nie świat, to ty."],
   [3, "Widzisz dwa piwa. Wypij oba."],
-  [4, "Kolega pisze „jeszcze jedno”. Słuchasz kolegi."],
+  [4, "Jesteś lekko wstawiony. Lekko jak fortepian."],
+  [6, "Nawalony jak messerschmitt. Lecisz."],
   [7, "Mówisz po niemiecku. Nie znasz niemieckiego."],
+  [8, "Jesteś w trzy dupy. Policz je. Nie dasz rady."],
   [9, "Widzisz światełko w tunelu. To sklep 24h. Albo Bóg."],
 ];
 const LINES = {
-  enter: ["Prawo jazdy? A komu to potrzebne.", "Kluczyki w stacyjce. Jak zawsze na tym osiedlu.", "Lusterko pokazuje dwóch ciebie. Obaj prowadzicie."],
-  exit: ["Wysiadasz. Auto i tak nie było twoje.", "Parkowanie na trawniku. Klasyk."],
-  crash: ["JEBUT!", "To nie był krawężnik. To był Mirek.", "Ubezpieczyciel właśnie dostał zawału."],
+  enter: ["Prawo jazdy masz w sercu.", "Kluczyki w stacyjce. Jak zawsze na tym osiedlu.", "Lusterko pokazuje dwóch ciebie. Obaj prowadzicie."],
+  exit: ["Wysiadasz. Auto i tak nie było twoje.", "Zaparkowane po bandzie. Dosłownie."],
+  crash: ["JEBUT!", "To nie był krawężnik. To był Mirek.", "Ubezpieczyciel właśnie dostał zawału.", "Blacharz już otwiera szampana."],
   vomit: ["Oddajesz Perełkę naturze.", "Pawik jak z obrazka. Monet by się zesrał.", "Wyszło nosem. Nawet frytki.", "Pizza z wczoraj pozdrawia."],
   vomitCar: ["Porzygałeś deskę rozdzielczą. Właściciel będzie zachwycony."],
   blackout: ["*urwał się film*", "*film się urwał, dubbing został*"],
   tree: ["Drzewo: 0. Ty: 1.", "Ekolodzy już jadą.", "Dzięcioł stracił mieszkanie."],
-  kebab: ["Kebab z baraniny. Baranina z kota. Smakuje.", "Sos czosnkowy wchłonął promile i twoją godność."],
+  room: {
+    stairwell: "Klatka schodowa. Pachnie kapustą i panem Zdzisiem.",
+    party: "Melanż u Mariusza. Nikt nie wie, kto to Mariusz.",
+    cellar: "Piwnica. Ciemno, wilgotno, idealnie.",
+    grandma: "Babcia! Pierogi na stole, telewizor na full.",
+  },
+  kebab: ["Kebab z baraniny. Baranina z kota. Smakuje.", "Sos czosnkowy wchłonął promile i twoją godność.", "Ostry jak żyleta. Jutro zaboli dwa razy."],
 };
 const $ = (id) => document.getElementById(id);
 const store = { get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch (e) { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } } };
@@ -82,6 +91,10 @@ export function startGame(autoplay = false) {
   const input = createInput(wrap, $("gJoy"), $("gUse"));
   const driving = createDriving(world);
   const vomit = createVomit(scene);
+  const interiors = createInteriors();
+  // the four doors closest to the start lead to four different places, the rest repeat them
+  [...world.doors].sort((a, b) => a.pos.length() - b.pos.length()).forEach((d, i) => { d.type = ROOM_TYPES[i % ROOM_TYPES.length]; });
+  let inside = null, insideDoor = null;
   const sauce = createVomit(scene, 0xf4f1e6, 0x2a2a2a);  // garlic sauce dripping off the kebab
 
   const resize = () => {
@@ -163,6 +176,7 @@ export function startGame(autoplay = false) {
 
   function newRun() {
     if (driving.car) driving.exit();
+    leaveRoom();
     // ?dyntka=7 in the URL starts already at 7 ‰ (for testing the effects)
     promil = Math.min(GOAL, Number(new URLSearchParams(location.search).get("dyntka")) || 0);
     drunk = promil / GOAL; count = 0; elapsed = 0; orbit = 0; puking = 0; fallDone = 0;
@@ -177,6 +191,9 @@ export function startGame(autoplay = false) {
     queue.length = 0; clearTimeout(toastTimer); toastTimer = 0; $("gToast").className = "g-toast";
     state = "play"; input.active = true;
     hud();
+    // ?pokoj=party (stairwell, party, cellar, grandma) starts inside that room (for testing)
+    const testRoom = new URLSearchParams(location.search).get("pokoj");
+    if (ROOM_TYPES.includes(testRoom)) enterRoom(world.doors.find((d) => d.type === testRoom));
   }
 
   function drink(kind) {
@@ -188,12 +205,23 @@ export function startGame(autoplay = false) {
 
   // what E (or the touch button) would do right now: get out, eat at the nearest stand, or steal the nearest car
   function useTarget() {
+    if (inside) return inside.target(player.root.position);
     if (driving.car) return { kind: "exit" };
     const pos = player.root.position, car = nearestCar(), kebab = world.kebabAt(pos, USE_RANGE);
+    const door = world.doors.find((d) => d.pos.distanceTo(pos) < 2.5);
+    if (door) return { kind: "door", door };
     if (kebab && (!car || kebab.front.distanceTo(pos) < car.group.position.distanceTo(pos))) return { kind: "kebab", kebab };
     return car ? { kind: "car", car } : null;
   }
   function use(target) {
+    if (target.kind === "door") { fade(() => enterRoom(target.door)); return; }
+    if (target.kind === "leave") { fade(leaveRoom); return; }
+    if (target.kind === "talk") {
+      const res = inside.talk(target.npc);
+      toast(res.text);
+      if (res.promil) promil = Math.max(0, promil + res.promil);
+      return;
+    }
     if (target.kind === "exit") {
       player.root.position.copy(driving.exit());
       player.root.visible = true;
@@ -204,12 +232,44 @@ export function startGame(autoplay = false) {
     } else {
       driving.enter(target.car);
       player.root.visible = false;
-      toast(pick(LINES.enter));
+      toast(`${target.car.spec.name}. ${pick(LINES.enter)}`);
     }
+  }
+
+  // a quick fade to black hides the jump between the estate and a room
+  let fading = false;
+  function fade(fn) {
+    if (fading) return;
+    fading = true;
+    $("gFade").classList.add("on");
+    setTimeout(() => { fn(); $("gFade").classList.remove("on"); fading = false; }, 280);
+  }
+  function enterRoom(door) {
+    const room = interiors.get(door.type);
+    inside = room; insideDoor = door;
+    room.scene.add(player.root);
+    fx.setScene(room.scene, room.bounds);
+    vomit.moveTo(room.scene); sauce.moveTo(room.scene);
+    player.reset(room.spawn);
+    camera.position.set(0, 2.2, room.bounds.minZ);
+    room.onEnter?.(player);
+    toast(LINES.room[door.type]);
+  }
+  function leaveRoom() {
+    if (!inside) return;
+    inside.onExit?.(player);
+    scene.add(player.root);
+    fx.setScene(scene, null);
+    vomit.moveTo(scene); sauce.moveTo(scene);
+    player.reset(insideDoor.pos);
+    player.face(insideDoor.pos.clone().add(new THREE.Vector3(0, 0, insideDoor.face * 5)));  // step out, back to the block
+    camera.position.copy(insideDoor.pos).add(new THREE.Vector3(0, 3, -insideDoor.face * 5));
+    inside = null;
   }
 
   function die() {
     stopEating();
+    leaveRoom();
     if (driving.car) { player.root.position.copy(driving.exit()); player.root.visible = true; }
     state = "dying"; input.active = false;
     $("gHint").hidden = true; $("gUse").hidden = true;
@@ -251,8 +311,13 @@ export function startGame(autoplay = false) {
     puking -= dt;
 
     let follow = player, dist = 6.5, reach = 2.6;
-    if (driving.car) {
-      if (Math.abs(driving.speed) > 4 && world.smashTree(driving.follow.root.position, driving.heading, 2)) {
+    if (inside) {
+      player.update(dt, move, drunk, t);
+      inside.resolve(player.root.position, 0.45);
+      inside.update(dt, t, drunk, player.root.position, { drink, toast });
+      dist = 4.2;
+    } else if (driving.car) {
+      if (Math.abs(driving.speed) > (driving.car.spec.smash ? 1 : 4) && world.smashTree(driving.follow.root.position, driving.heading, 2)) {
         driving.slow(0.75);
         toast(pick(LINES.tree));
       }
@@ -265,25 +330,31 @@ export function startGame(autoplay = false) {
       world.resolve(player.root.position, 0.45);
       if (eating) eat(dt);
     }
-    world.update(follow.root.position, dt);
-    if ((dropIn -= dt) <= 0) { dropIn = DROP_EVERY; beers.drop(follow.root.position); }
-    beers.update(dt, t, follow.root.position, reach, drink);
+    if (!inside) {
+      world.update(follow.root.position, dt);
+      if ((dropIn -= dt) <= 0) { dropIn = DROP_EVERY; beers.drop(follow.root.position); }
+      beers.update(dt, t, follow.root.position, reach, drink);
+    }
 
     const ev = fx.update(dt, t, drunk, follow, dist, eating && kebabShot());
     if (ev === "blackout") {
       toast(pick(LINES.blackout));
-      if (!driving.car) player.root.position.add(new THREE.Vector3((Math.random() - 0.5) * 8, 0, (Math.random() - 0.5) * 8));
+      if (!driving.car && !inside) player.root.position.add(new THREE.Vector3((Math.random() - 0.5) * 8, 0, (Math.random() - 0.5) * 8));
     }
     if (ev === "vomit") {
       puking = 1.6;
       toast(pick(driving.car ? LINES.vomitCar : LINES.vomit));
-      if (!driving.car) vomit.puddle(player.mouth(mouth).add(face.set(Math.sin(player.heading), 0, Math.cos(player.heading)).multiplyScalar(0.8)));
+      if (!driving.car) vomit.puddle(player.mouth(mouth).add(face.set(Math.sin(player.heading), 0, Math.cos(player.heading)).multiplyScalar(0.8)), inside ? 0.02 : 0.2);
     }
     if (puking > 0 && !driving.car) vomit.spray(player.mouth(mouth), face.set(Math.sin(player.heading), -0.6, Math.cos(player.heading)).normalize());
     vomit.update(dt); sauce.update(dt);
 
-    world.lamps.forEach((l, i) => { l.rotation.z = Math.sin(t * 2 + i) * 0.35 * drunk * drunk; l.position.y = Math.abs(Math.sin(t * 3 + i)) * 0.6 * drunk * drunk; });
-    const hint = target && { exit: ["🚶", "wysiądź"], kebab: ["🥙", "zjedz kebsa"], car: ["🚗", "ukradnij auto"] }[target.kind];
+    if (!inside) world.lamps.forEach((l, i) => { l.rotation.z = Math.sin(t * 2 + i) * 0.35 * drunk * drunk; l.position.y = Math.abs(Math.sin(t * 3 + i)) * 0.6 * drunk * drunk; });
+    const hint = target && {
+      exit: ["🚶", "wysiądź"], kebab: ["🥙", "zjedz kebsa"], leave: ["🚪", "wyjdź"],
+      door: ["🚪", `wejdź do klatki ${target.door?.letter}`], talk: [target.icon, target.label],
+      car: ["🚗", `ukradnij ${target.car?.spec.acc}`],
+    }[target.kind];
     $("gHint").hidden = !hint || target.kind === "exit";
     $("gUse").hidden = !hint;
     if (hint) { $("gHint").innerHTML = `<kbd>E</kbd> ${hint[1]}`; $("gUse").textContent = hint[0]; }

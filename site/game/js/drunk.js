@@ -33,7 +33,8 @@ const DrunkShader = {
 
 export function createDrunkFx(renderer, scene, camera) {
   const composer = new EffectComposer(renderer);
-  composer.addPass(new RenderPass(scene, camera));
+  const renderPass = new RenderPass(scene, camera);
+  composer.addPass(renderPass);
   const bloom = new UnrealBloomPass(new THREE.Vector2(1024, 576), 0.8, 0.55, 0.82);  // lamps, windows and beers glow
   composer.addPass(bloom);
   const pass = new ShaderPass(DrunkShader);
@@ -43,8 +44,11 @@ export function createDrunkFx(renderer, scene, camera) {
   let blackout = 0, blackoutLeft = 0, blackoutCooldown = 25, green = 0, greenLeft = 0, vomitCooldown = 8;
   const camPos = new THREE.Vector3(), look = new THREE.Vector3();
 
+  let room = null;  // inside a building the camera has to stay between the walls
   return {
     composer,
+    // draw another place (an interior) or the estate again; room: bounds to keep the camera in
+    setScene(s, bounds = null) { renderPass.scene = s; room = bounds; },
     get blackedOut() { return blackoutLeft > 0; },
     resize(w, h) { composer.setSize(w, h); },
     // returns an event name when something random happens ("blackout", "vomit")
@@ -87,6 +91,12 @@ export function createDrunkFx(renderer, scene, camera) {
       camPos.x += Math.sin(t * 0.7) * 1.8 * d * d;
       camPos.z += Math.cos(t * 0.5) * 1.2 * d * d;
       camera.position.lerp(camPos, Math.min(1, dt * (3.5 - d * 2)));
+      if (room) {  // indoors: a higher camera that looks down over your shoulder
+        camera.position.y += (room.h - 0.35 - camera.position.y) * Math.min(1, dt * 4);
+        camera.position.x = THREE.MathUtils.clamp(camera.position.x, room.minX - 0.25, room.maxX + 0.25);
+        camera.position.z = THREE.MathUtils.clamp(camera.position.z, room.minZ - 0.25, room.maxZ + 0.25);
+        camera.position.y = Math.min(camera.position.y, room.h - 0.3);
+      }
       look.set(player.root.position.x, 1.6, player.root.position.z);
       camera.lookAt(look);
       camera.rotateZ(Math.sin(t * 0.8) * 0.32 * Math.pow(d, 1.2) + Math.sin(t * 2.3) * 0.05 * d);

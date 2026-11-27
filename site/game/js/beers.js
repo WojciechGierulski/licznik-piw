@@ -4,23 +4,23 @@ import * as THREE from "three";
 export const KINDS = [
   { id: "perelka", name: "Perełka", color: 0xf2c94c, promil: 0.32, weight: 32, lines: [
     "Wątroba właśnie napisała do ciebie „spierdalaj”.",
-    "„Jeszcze jedno i idziemy”. Kłamco.",
     "Ciepła jak dupa ratlerka. Wchodzi.",
-    "Smakuje jak poniedziałek w urzędzie. Pijesz dalej.",
+    "Perełka. Szampan biedoty.",
+    "Smakuje jak poniedziałek. Pijesz dalej, bo jesteś twardziel.",
   ] },
   { id: "mioduwka", name: "Miodówka", color: 0xe08a1e, promil: 0.45, weight: 22, lines: [
     "Kubuś Puchatek na odwyku też to pił.",
-    "Słodkie jak twoje kłamstwa do szefa.",
-    "Miodowe. Pszczoły złożyły pozew.",
+    "Miodówka. Pszczoły złożyły pozew zbiorowy.",
+    "Słodkie jak pierwsza wypłata. I tak samo szybko znika.",
   ] },
   { id: "ipa", name: "Kraft IPA", color: 0x7ed957, promil: 0.6, weight: 12, lines: [
     "38 zł za smak choinki. Szanujemy.",
     "Notki grejpfruta, sosny i kredytu we frankach.",
-    "Gorzkie jak twoja była.",
+    "Gorzkie jak mina teściowej na weselu.",
   ] },
   { id: "promka", name: "Promka 4+2", color: 0x4aa3ff, promil: 1.4, count: 6, weight: 8, lines: [
     "Sześciopak w 4 sekundy. Kasjerka zadzwoniła po księdza.",
-    "Napiłeś się za cały blok. Blok bije brawo.",
+    "Promocja 4+2. Matematyka mówi: zero kontroli.",
   ] },
 ];
 const TOTAL = KINDS.reduce((s, k) => s + k.weight, 0);
@@ -45,7 +45,7 @@ function labelMaterial(kind) {
   return m;
 }
 
-function bottleMesh(kind) {
+export function bottleMesh(kind) {
   const g = new THREE.Group();
   const glass = new THREE.MeshStandardMaterial({ color: kind.color, emissive: kind.color, emissiveIntensity: 0.9, roughness: 0.2, metalness: 0.1 });
   const one = (x, z, s = 1) => {
