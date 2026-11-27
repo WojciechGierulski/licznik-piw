@@ -349,10 +349,13 @@ export function buildWorld(scene, assets) {
     // the kebab guy behind the counter, slicing meat until someone orders
     const vendor = createActor(assets.man, { height: 1.78, colors: { Shirt: 0xf2efe6, Pants: 0x2b2b2b, Hair: 0x111111 } });
     vendor.root.position.set(0.5, 0, 0.55);
-    const cap = new THREE.Group(), capMat = std({ color: 0xb3261e, roughness: 0.7 });
-    const crown = new THREE.Mesh(new THREE.SphereGeometry(0.125, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), capMat);
-    const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.015, 14, 1, false, -Math.PI / 2, Math.PI), capMat); brim.position.z = 0.06;
-    cap.add(crown, brim); cap.position.set(0, 1.66, 0.0); cap.scale.set(1, 0.9, 1.08);
+    // a red fez with a black tassel
+    const cap = new THREE.Group(), feltMat = std({ color: 0xb01818, roughness: 0.8 }), tasselMat = std({ color: 0x111111, roughness: 0.9 });
+    const fez = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.125, 0.24, 16), feltMat); fez.position.y = 0.12;
+    const knot = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), tasselMat); knot.position.y = 0.245;
+    const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.09, 6), tasselMat); cord.position.set(0.05, 0.215, 0); cord.rotation.z = -1.1;
+    const tassel = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.08, 8), tasselMat); tassel.position.set(0.11, 0.15, 0);
+    cap.add(fez, knot, cord, tassel); cap.position.set(0, 1.6, 0);
     const tache = new THREE.Group(), hairMat = std({ color: 0x141010, roughness: 0.9 });
     const mid = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.028, 0.03), hairMat);
     const tipL = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.06, 0.025), hairMat); tipL.position.set(-0.055, -0.025, 0);
