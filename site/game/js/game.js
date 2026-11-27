@@ -144,7 +144,7 @@ export function startGame(autoplay = false) {
     if (e.t >= KEBAB_TIME) {
       stopEating();
       promil = Math.max(0, promil - 1.2);
-      toast("−1,2 ‰. Wątroba dziękuje, żołądek nie.");
+      toast("🥙 −1,2 ‰");
     }
   }
 
