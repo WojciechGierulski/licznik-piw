@@ -351,16 +351,16 @@ export function buildWorld(scene, assets) {
     vendor.root.position.set(0.5, 0, 0.55);
     // a red fez with a black tassel
     const cap = new THREE.Group(), feltMat = std({ color: 0xb01818, roughness: 0.8 }), tasselMat = std({ color: 0x111111, roughness: 0.9 });
-    const fez = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.125, 0.24, 16), feltMat); fez.position.y = 0.12;
-    const knot = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), tasselMat); knot.position.y = 0.245;
-    const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.09, 6), tasselMat); cord.position.set(0.05, 0.215, 0); cord.rotation.z = -1.1;
-    const tassel = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.08, 8), tasselMat); tassel.position.set(0.11, 0.15, 0);
-    cap.add(fez, knot, cord, tassel); cap.position.set(0, 1.6, 0);
+    const fez = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.1, 0.17, 16), feltMat); fez.position.y = 0.085;
+    const knot = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), tasselMat); knot.position.y = 0.175;
+    const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.09, 6), tasselMat); cord.position.set(0.04, 0.15, 0); cord.rotation.z = -1.1;
+    const tassel = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.08, 8), tasselMat); tassel.position.set(0.09, 0.09, 0);
+    cap.add(fez, knot, cord, tassel); cap.position.set(0, 1.71, 0.03); cap.rotation.x = -0.12;
     const tache = new THREE.Group(), hairMat = std({ color: 0x141010, roughness: 0.9 });
-    const mid = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.028, 0.03), hairMat);
-    const tipL = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.06, 0.025), hairMat); tipL.position.set(-0.055, -0.025, 0);
-    const tipR = tipL.clone(); tipR.position.x = 0.055;
-    tache.add(mid, tipL, tipR); tache.position.set(0, 1.565, 0.115);
+    const mid = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.024, 0.03), hairMat);
+    const tipL = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.035, 0.02), hairMat); tipL.position.set(-0.048, -0.014, 0);
+    const tipR = tipL.clone(); tipR.position.x = 0.048;
+    tache.add(mid, tipL, tipR); tache.position.set(0, 1.59, 0.15);
     vendor.attach("Head", cap); vendor.attach("Head", tache);
     vendor.play("Idle");
     const handV = vendor.bones["PalmR"];
